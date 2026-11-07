@@ -12,7 +12,7 @@ use crate::{
 };
 
 use super::{
-    attempt::{send_once, Attempt},
+    attempt::{send, Attempt},
     map_sse_error, merge_extra_params, provider_event_error,
     recorder::recorded_headers,
     CallRecorder, FinishReason, ModelEvent, Provider, ProviderStream,
@@ -90,10 +90,11 @@ impl Provider for AnthropicProvider {
             if let Some(recorder) = &recorder {
                 recorder.request(request_headers.clone(), &body).await?;
             }
-            let attempt = send_once(
+            let attempt = send(
                 "Anthropic",
-                || client.post(&config.request_url)
-                    .header("x-api-key", &config.api_key).header("anthropic-version", "2023-06-01")
+                &config.api_keys,
+                |api_key| client.post(&config.request_url)
+                    .header("x-api-key", api_key).header("anthropic-version", "2023-06-01")
                     .headers(config.custom_headers.clone())
                     .json(&body),
                 &cancellation,

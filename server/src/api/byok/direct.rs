@@ -16,7 +16,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use crate::{
     model::{ModelConfig, NewLlmCall, Usage},
     network::NetworkClients,
-    provider::{custom_headers, CallRecorder, FinishReason},
+    provider::{custom_headers, keys, CallRecorder, FinishReason},
     store::Store,
     Error, Result,
 };
@@ -106,29 +106,12 @@ impl NativeForwarder {
         if model.custom_headers_enabled {
             upstream_headers.extend(custom_headers(&model.custom_headers, &call_id)?);
         }
-        match protocol {
-            Protocol::Messages => {
-                upstream_headers.insert(
-                    "x-api-key",
-                    model.api_key.parse().map_err(|error| {
-                        Error::Config(format!("invalid API key header: {error}"))
-                    })?,
-                );
-                if !upstream_headers.contains_key("anthropic-version") {
-                    upstream_headers.insert("anthropic-version", "2023-06-01".parse().unwrap());
-                }
-            }
-            Protocol::Chat | Protocol::Responses => {
-                upstream_headers.insert(
-                    header::AUTHORIZATION,
-                    format!("Bearer {}", model.api_key)
-                        .parse()
-                        .map_err(|error| {
-                            Error::Config(format!("invalid API key header: {error}"))
-                        })?,
-                );
-            }
+        if matches!(protocol, Protocol::Messages)
+            && !upstream_headers.contains_key("anthropic-version")
+        {
+            upstream_headers.insert("anthropic-version", "2023-06-01".parse().unwrap());
         }
+        let api_keys = keys::rotated(&model.model_hash, &model.api_key);
         let logged_headers = upstream_headers
             .iter()
             .filter(|(name, _)| !crate::model::is_sensitive_header(name.as_str()))
@@ -144,16 +127,17 @@ impl NativeForwarder {
         recorder
             .request(Value::Object(logged_headers), &body)
             .await?;
-        let response = match client
-            .post(&request_url)
-            .headers(upstream_headers)
-            .json(&body)
-            .send()
-            .await
-        {
+        let sent = send_with_keys(
+            &client,
+            &request_url,
+            protocol,
+            upstream_headers,
+            &api_keys,
+            &body,
+        );
+        let response = match sent.await {
             Ok(response) => response,
             Err(error) => {
-                let error = Error::Http(error);
                 recorder.failed(&error).await?;
                 return Err(error);
             }
@@ -248,6 +232,50 @@ impl NativeForwarder {
         let output = output.map(|result: Result<Bytes>| result);
         build_response(status, headers, Body::from_stream(output))
     }
+}
+
+/// Sends the request with each key in turn until a key is accepted or the last key answers.
+async fn send_with_keys(
+    client: &reqwest::Client,
+    request_url: &str,
+    protocol: Protocol,
+    headers: HeaderMap,
+    api_keys: &[String],
+    body: &Value,
+) -> Result<reqwest::Response> {
+    for (index, api_key) in api_keys.iter().enumerate() {
+        let mut headers = headers.clone();
+        insert_api_key(&mut headers, protocol, api_key)?;
+        let response = client
+            .post(request_url)
+            .headers(headers)
+            .json(body)
+            .send()
+            .await?;
+        if index + 1 < api_keys.len() && keys::rejected(response.status()) {
+            tracing::warn!(
+                key_index = index + 1,
+                key_count = api_keys.len(),
+                status = %response.status(),
+                "provider rejected API key; trying the next key"
+            );
+            continue;
+        }
+        return Ok(response);
+    }
+    Err(Error::Config("model has no API key".into()))
+}
+
+fn insert_api_key(headers: &mut HeaderMap, protocol: Protocol, api_key: &str) -> Result<()> {
+    let (name, value) = match protocol {
+        Protocol::Messages => (header::HeaderName::from_static("x-api-key"), api_key.to_owned()),
+        Protocol::Chat | Protocol::Responses => (header::AUTHORIZATION, format!("Bearer {api_key}")),
+    };
+    let value: header::HeaderValue = value
+        .parse()
+        .map_err(|error| Error::Config(format!("invalid API key header: {error}")))?;
+    headers.insert(name, value);
+    Ok(())
 }
 
 fn build_response(status: StatusCode, headers: &HeaderMap, body: Body) -> Response {

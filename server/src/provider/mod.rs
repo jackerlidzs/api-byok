@@ -2,6 +2,7 @@
 mod anthropic;
 mod attempt;
 mod event;
+pub(crate) mod keys;
 mod normalize;
 mod openai_chat;
 mod openai_responses;

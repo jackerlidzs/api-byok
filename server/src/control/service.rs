@@ -548,6 +548,11 @@ impl ControlService {
     pub async fn discover_models(&self, input: &ModelDiscoveryInput) -> Result<DiscoveredModels> {
         let client = self.clients.default_client().await?;
         let base_url = crate::model::normalize_request_url(&input.base_url)?;
+        // The key field may hold several keys; listing models needs only one.
+        let api_key = crate::provider::keys::split(&input.api_key)
+            .into_iter()
+            .next()
+            .unwrap_or_default();
         discover_models_from_endpoint(
             &client,
             match input.model_type {
@@ -555,7 +560,7 @@ impl ControlService {
                 ModelType::Anthropic => ProviderType::Anthropic,
             },
             &base_url,
-            &input.api_key,
+            &api_key,
             if input.custom_headers_enabled {
                 &input.custom_headers
             } else {

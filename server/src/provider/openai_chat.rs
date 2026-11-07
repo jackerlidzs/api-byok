@@ -18,7 +18,7 @@ use crate::{
 
 use super::{
     apply_body_allowlist, apply_openai_prompt_cache_key,
-    attempt::{send_once, Attempt},
+    attempt::{send, Attempt},
     map_sse_error, merge_extra_params, provider_event_error,
     recorder::recorded_headers,
     CallRecorder, FinishReason, ModelEvent, Provider, ProviderStream,
@@ -92,10 +92,11 @@ impl Provider for OpenAiChatProvider {
             if let Some(recorder) = &recorder {
                 recorder.request(request_headers.clone(), &body).await?;
             }
-            let attempt = send_once(
+            let attempt = send(
                 "OpenAI Chat",
-                || client.post(&config.request_url)
-                    .bearer_auth(&config.api_key).headers(config.custom_headers.clone()).json(&body),
+                &config.api_keys,
+                |api_key| client.post(&config.request_url)
+                    .bearer_auth(api_key).headers(config.custom_headers.clone()).json(&body),
                 &cancellation,
                 recorder.as_ref(),
             ).await?;

@@ -42,7 +42,8 @@ pub enum ProviderKind {
 pub struct ProviderConfig {
     pub kind: ProviderKind,
     pub request_url: String,
-    pub api_key: String,
+    /// Keys in the order to try them; later keys are used when an earlier key is rejected.
+    pub api_keys: Vec<String>,
     pub custom_headers: reqwest::header::HeaderMap,
     pub max_output_tokens: Option<u64>,
     pub request_timeout: Duration,

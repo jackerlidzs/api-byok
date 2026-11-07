@@ -14,6 +14,9 @@ FROM rust:1-bookworm AS server
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY server/ server/
+# Workspace members: the server depends on semble-core, and cargo loads every member manifest.
+COPY crates/ crates/
+COPY support/benchmarks/semble/ support/benchmarks/semble/
 COPY apps/desktop/src-tauri/Cargo.toml apps/desktop/src-tauri/Cargo.toml
 COPY apps/desktop/src-tauri/build.rs apps/desktop/src-tauri/build.rs
 COPY apps/desktop/src-tauri/src/ apps/desktop/src-tauri/src/
@@ -37,15 +40,17 @@ RUN apt-get update && \
 
 COPY --from=server /tmp/cursor-server /usr/local/bin/cursor-server
 COPY --from=web /src/apps/desktop/dist/ /app/console/
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 ENV CURSOR_LISTEN_ADDR=0.0.0.0:3000 \
     CURSOR_DATABASE_URL=sqlite:///data/cursor-server.db \
     CURSOR_CONSOLE_DIR=/app/console \
     RUST_LOG=cursor_server=info
 
-USER cursor-byok
+# The container starts as root only to take ownership of /data (mounted disks such as
+# Render's are owned by root); the entrypoint then runs the server as cursor-byok.
 EXPOSE 3000
 VOLUME ["/data"]
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
     CMD curl --fail --silent http://127.0.0.1:3000/__byok-api__/healthz || exit 1
-ENTRYPOINT ["/usr/local/bin/cursor-server"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

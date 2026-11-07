@@ -93,7 +93,7 @@ impl Provider for ProviderRouter {
                     let config = ProviderConfig {
                         kind: provider_kind(provider_type),
                         request_url,
-                        api_key: model.api_key.clone(),
+                        api_keys: super::keys::rotated(&model.model_hash, &model.api_key),
                         custom_headers: if model.custom_headers_enabled {
                             custom_headers(
                                 &model.custom_headers,
