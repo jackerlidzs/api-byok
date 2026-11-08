@@ -13,10 +13,15 @@ const V0049_CONFIG_FILE_NAME: &str = "config.yaml";
 const DEFAULT_PROVIDER_REQUEST_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 const DEFAULT_PROVIDER_STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30 * 60);
 
+/// `CURSOR_DATA_DIR` when set (e.g. a persistent disk in a container), otherwise
+/// `~/.cursor-byok-v3`. Holds the CA, plugins, rules and caches.
 pub fn managed_data_dir() -> Result<PathBuf> {
-    let home_dir = dirs::home_dir()
-        .ok_or_else(|| Error::Config("cannot resolve user home directory".into()))?;
-    let data_dir = home_dir.join(DATA_DIR_NAME);
+    let data_dir = match env::var_os("CURSOR_DATA_DIR").filter(|value| !value.is_empty()) {
+        Some(dir) => PathBuf::from(dir),
+        None => dirs::home_dir()
+            .ok_or_else(|| Error::Config("cannot resolve user home directory".into()))?
+            .join(DATA_DIR_NAME),
+    };
     fs::create_dir_all(&data_dir)?;
     #[cfg(unix)]
     fs::set_permissions(&data_dir, fs::Permissions::from_mode(0o700))?;

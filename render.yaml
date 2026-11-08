@@ -22,6 +22,12 @@ services:
         value: sqlite:///data/cursor-server.db
       - key: CURSOR_CONSOLE_DIR
         value: /app/console
+      # CA, plugins and caches; on the disk so the CA survives redeploys.
+      - key: CURSOR_DATA_DIR
+        value: /data/cursor-byok-v3
+      # Add the CA to the container's trust store at startup (the store is reset on each deploy).
+      - key: CURSOR_TRUST_CA
+        value: "1"
       - key: RUST_LOG
         value: cursor_server=info
     disk:

@@ -40,6 +40,8 @@ COPY --from=web /src/apps/desktop/dist/ /app/console/
 ENV CURSOR_LISTEN_ADDR=0.0.0.0:3000 \
     CURSOR_DATABASE_URL=sqlite:///data/cursor-server.db \
     CURSOR_CONSOLE_DIR=/app/console \
+    CURSOR_DATA_DIR=/data/cursor-byok-v3 \
+    CURSOR_TRUST_CA=1 \
     RUST_LOG=cursor_server=info
 
 EXPOSE 3000
