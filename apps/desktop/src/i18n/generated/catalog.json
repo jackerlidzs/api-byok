@@ -19,7 +19,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 148,
+          "line": 151,
           "column": 15
         }
       ]
@@ -413,7 +413,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 174,
+          "line": 177,
           "column": 48
         }
       ]
@@ -703,7 +703,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 196,
+          "line": 199,
           "column": 49
         }
       ]
@@ -744,7 +744,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 123,
+          "line": 126,
           "column": 29
         }
       ]
@@ -756,7 +756,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 181,
+          "line": 184,
           "column": 33
         },
         {
@@ -846,12 +846,12 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 132,
+          "line": 135,
           "column": 20
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 135,
+          "line": 138,
           "column": 24
         }
       ]
@@ -935,7 +935,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 139,
+          "line": 142,
           "column": 61
         }
       ]
@@ -1129,18 +1129,6 @@
         }
       ]
     },
-    "29fbbef32a6eb58b": {
-      "source": "不再显示此广告",
-      "kind": "text",
-      "placeholders": [],
-      "refs": [
-        {
-          "file": "shell/AppLayout.tsx",
-          "line": 248,
-          "column": 14
-        }
-      ]
-    },
     "2a2773134a829016": {
       "source": "按历史 LLM 调用记录汇总，进行中的调用不计入。",
       "kind": "text",
@@ -1214,7 +1202,7 @@
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 124,
+          "line": 127,
           "column": 98
         },
         {
@@ -1264,12 +1252,7 @@
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 238,
-          "column": 20
-        },
-        {
-          "file": "shell/AppLayout.tsx",
-          "line": 249,
+          "line": 118,
           "column": 20
         }
       ]
@@ -1386,7 +1369,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 237,
+          "line": 117,
           "column": 14
         }
       ]
@@ -1466,12 +1449,12 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 157,
+          "line": 160,
           "column": 74
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 157,
+          "line": 160,
           "column": 97
         }
       ]
@@ -1529,7 +1512,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 200,
+          "line": 203,
           "column": 27
         }
       ]
@@ -1543,11 +1526,6 @@
           "file": "shared/ui/ConfirmDialog.tsx",
           "line": 4,
           "column": 110
-        },
-        {
-          "file": "shell/AppLayout.tsx",
-          "line": 250,
-          "column": 21
         }
       ]
     },
@@ -1614,7 +1592,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 140,
+          "line": 143,
           "column": 43
         }
       ]
@@ -1641,7 +1619,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 100,
+          "line": 103,
           "column": 13
         }
       ]
@@ -1800,18 +1778,6 @@
         }
       ]
     },
-    "3da0bf1610ff5db5": {
-      "source": "推荐内容",
-      "kind": "text",
-      "placeholders": [],
-      "refs": [
-        {
-          "file": "shell/ads/AdMenu.tsx",
-          "line": 62,
-          "column": 56
-        }
-      ]
-    },
     "3f6c25aa329163a4": {
       "source": "原接口路径会追加到此服务地址。",
       "kind": "text",
@@ -1947,7 +1913,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 178,
+          "line": 181,
           "column": 85
         },
         {
@@ -2198,13 +2164,8 @@
       "placeholders": [],
       "refs": [
         {
-          "file": "shell/ads/AdMenu.tsx",
-          "line": 72,
-          "column": 99
-        },
-        {
           "file": "shell/AppLayout.tsx",
-          "line": 204,
+          "line": 86,
           "column": 67
         }
       ]
@@ -2320,7 +2281,7 @@
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 224,
+          "line": 106,
           "column": 51
         }
       ]
@@ -2387,18 +2348,6 @@
           "file": "features/models/CursorSettingsPage.tsx",
           "line": 257,
           "column": 47
-        }
-      ]
-    },
-    "550eddc3c7fefa99": {
-      "source": "推广",
-      "kind": "text",
-      "placeholders": [],
-      "refs": [
-        {
-          "file": "shell/ads/FloatingAd.tsx",
-          "line": 63,
-          "column": 48
         }
       ]
     },
@@ -2513,7 +2462,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 155,
+          "line": 158,
           "column": 30
         }
       ]
@@ -2630,7 +2579,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 119,
+          "line": 122,
           "column": 31
         }
       ]
@@ -2642,12 +2591,12 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 168,
+          "line": 171,
           "column": 31
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 169,
+          "line": 172,
           "column": 34
         }
       ]
@@ -2659,7 +2608,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 164,
+          "line": 167,
           "column": 31
         },
         {
@@ -2678,18 +2627,6 @@
           "file": "features/settings/AppLifecycleSettingsCard.tsx",
           "line": 59,
           "column": 40
-        }
-      ]
-    },
-    "5f9acfb945229062": {
-      "source": "你确认不想再看到此广告吗？",
-      "kind": "text",
-      "placeholders": [],
-      "refs": [
-        {
-          "file": "shell/AppLayout.tsx",
-          "line": 254,
-          "column": 11
         }
       ]
     },
@@ -2872,7 +2809,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 555,
+          "line": 544,
           "column": 43
         }
       ]
@@ -3023,7 +2960,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 80,
+          "line": 52,
           "column": 47
         }
       ]
@@ -3146,7 +3083,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 118,
+          "line": 121,
           "column": 32
         }
       ]
@@ -3223,7 +3160,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 550,
+          "line": 539,
           "column": 43
         }
       ]
@@ -3247,7 +3184,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 133,
+          "line": 136,
           "column": 19
         }
       ]
@@ -3413,7 +3350,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 484,
+          "line": 483,
           "column": 21
         }
       ]
@@ -3437,7 +3374,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 200,
+          "line": 203,
           "column": 44
         }
       ]
@@ -3537,7 +3474,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 109,
+          "line": 112,
           "column": 15
         }
       ]
@@ -3573,7 +3510,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 120,
+          "line": 123,
           "column": 31
         }
       ]
@@ -3694,7 +3631,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 76,
+          "line": 48,
           "column": 29
         }
       ]
@@ -3725,18 +3662,6 @@
           "file": "features/calls/CallTable.tsx",
           "line": 58,
           "column": 15
-        }
-      ]
-    },
-    "8df48894086d6fbd": {
-      "source": "原因（可选）",
-      "kind": "text",
-      "placeholders": [],
-      "refs": [
-        {
-          "file": "shell/AppLayout.tsx",
-          "line": 256,
-          "column": 16
         }
       ]
     },
@@ -3786,7 +3711,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 142,
+          "line": 145,
           "column": 65
         }
       ]
@@ -3824,7 +3749,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 74,
+          "line": 46,
           "column": 39
         }
       ]
@@ -3879,7 +3804,7 @@
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 224,
+          "line": 106,
           "column": 62
         }
       ]
@@ -4035,7 +3960,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 243,
+          "line": 123,
           "column": 11
         }
       ]
@@ -4309,7 +4234,7 @@
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 126,
+          "line": 129,
           "column": 29
         },
         {
@@ -4425,12 +4350,12 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 140,
+          "line": 143,
           "column": 27
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 141,
+          "line": 144,
           "column": 30
         }
       ]
@@ -4442,7 +4367,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 239,
+          "line": 119,
           "column": 21
         }
       ]
@@ -4454,7 +4379,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 185,
+          "line": 188,
           "column": 33
         },
         {
@@ -4697,12 +4622,12 @@
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 270,
+          "line": 129,
           "column": 64
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 270,
+          "line": 129,
           "column": 125
         }
       ]
@@ -4940,18 +4865,6 @@
         }
       ]
     },
-    "b8c9b486c83b5778": {
-      "source": "不再显示广告",
-      "kind": "text",
-      "placeholders": [],
-      "refs": [
-        {
-          "file": "shell/ads/AdMenu.tsx",
-          "line": 88,
-          "column": 24
-        }
-      ]
-    },
     "b9670c85a4ab939e": {
       "source": "路由",
       "kind": "text",
@@ -4976,7 +4889,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 174,
+          "line": 177,
           "column": 31
         },
         {
@@ -5088,18 +5001,6 @@
           "file": "features/settings/SettingsPage.tsx",
           "line": 276,
           "column": 40
-        }
-      ]
-    },
-    "bda62ce1d5e4ace9": {
-      "source": "可以告诉我们原因",
-      "kind": "text",
-      "placeholders": [],
-      "refs": [
-        {
-          "file": "shell/AppLayout.tsx",
-          "line": 261,
-          "column": 24
         }
       ]
     },
@@ -5234,7 +5135,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 147,
+          "line": 150,
           "column": 15
         }
       ]
@@ -5648,7 +5549,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 190,
+          "line": 72,
           "column": 54
         }
       ]
@@ -5812,7 +5713,7 @@
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 78,
+          "line": 50,
           "column": 29
         }
       ]
@@ -5881,18 +5782,6 @@
           "file": "features/models/CursorModelTestResult.tsx",
           "line": 34,
           "column": 7
-        }
-      ]
-    },
-    "e1295adecbb77755": {
-      "source": "关闭广告",
-      "kind": "text",
-      "placeholders": [],
-      "refs": [
-        {
-          "file": "shell/ads/FloatingAd.tsx",
-          "line": 64,
-          "column": 66
         }
       ]
     },
@@ -5989,7 +5878,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 75,
+          "line": 47,
           "column": 44
         }
       ]
@@ -6167,7 +6056,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 153,
+          "line": 156,
           "column": 22
         }
       ]
@@ -6320,7 +6209,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 206,
+          "line": 209,
           "column": 100
         }
       ]
@@ -6453,7 +6342,7 @@
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 79,
+          "line": 51,
           "column": 46
         }
       ]
@@ -6703,7 +6592,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 208,
+          "line": 211,
           "column": 41
         }
       ]
@@ -6751,7 +6640,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 81,
+          "line": 53,
           "column": 48
         }
       ]
@@ -6775,7 +6664,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 126,
+          "line": 129,
           "column": 17
         },
         {
