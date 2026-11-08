@@ -143,6 +143,29 @@ export interface ProxySettingsInput {
   password?: string;
 }
 
+/** How one provider API key reaches the provider: Proxy settings, its own proxy, or directly. */
+export type KeyProxyMode = "inherit" | "custom" | "direct";
+
+export interface KeyProxy {
+  mode: KeyProxyMode;
+  address: string;
+  auth_enabled: boolean;
+  username: string;
+  password: string;
+}
+
+export interface ProviderApiKey {
+  key: string;
+  enabled: boolean;
+  proxy: KeyProxy;
+}
+
+export interface ApiKeySettings {
+  enabled: boolean;
+  /** Keys per provider host (lowercase host of the model server address). */
+  providers: Record<string, ProviderApiKey[]>;
+}
+
 export type TabMode = "public" | "direct" | "custom";
 
 export interface TabSettings {
@@ -550,6 +573,8 @@ export const api = {
   setExternalApiSettings: (settings: ExternalApiSettings) => request<ExternalApiSettings>("/settings/external-api", { method: "PUT", body: JSON.stringify(settings) }),
   statisticsStorage: () => request<StatisticsStorage>("/settings/storage/statistics"),
   clearStatisticsStorage: (scope: StatisticsStorageScope) => request<StatisticsStorage>("/settings/storage/statistics", { method: "DELETE", body: JSON.stringify({ scope }) }),
+  apiKeySettings: () => request<ApiKeySettings>("/settings/api-keys"),
+  setApiKeySettings: (settings: ApiKeySettings) => request<ApiKeySettings>("/settings/api-keys", { method: "PUT", body: JSON.stringify(settings) }),
   proxySettings: () => request<ProxySettings>("/settings/proxy"),
   setProxySettings: (settings: ProxySettingsInput) => request<ProxySettings>("/settings/proxy", { method: "PUT", body: JSON.stringify(settings) }),
   tabSettings: () => request<TabSettings>("/settings/tab"),

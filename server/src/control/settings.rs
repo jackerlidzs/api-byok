@@ -8,9 +8,9 @@ use axum::{
 use serde::{Deserialize, Serialize};
 
 use crate::store::{
-    CommitPromptLocale, CommitSettings, DesktopSettings, ExternalApiSettings, PortSettings,
-    ProxySettings, ProxySettingsInput, StatisticsStorage, StatisticsStorageScope, TabSettings,
-    TokenPricingSettings,
+    ApiKeySettings, CommitPromptLocale, CommitSettings, DesktopSettings, ExternalApiSettings,
+    PortSettings, ProxySettings, ProxySettingsInput, StatisticsStorage, StatisticsStorageScope,
+    TabSettings, TokenPricingSettings,
 };
 
 use super::{ControlService, ObservabilitySettings};
@@ -48,6 +48,17 @@ pub async fn update_external_api(
     Json(settings): Json<ExternalApiSettings>,
 ) -> Result<Json<ExternalApiSettings>> {
     Ok(Json(service.set_external_api_settings(settings).await?))
+}
+
+pub async fn get_api_keys(State(service): State<ControlService>) -> Result<Json<ApiKeySettings>> {
+    Ok(Json(service.api_key_settings().await?))
+}
+
+pub async fn update_api_keys(
+    State(service): State<ControlService>,
+    Json(settings): Json<ApiKeySettings>,
+) -> Result<Json<ApiKeySettings>> {
+    Ok(Json(service.set_api_key_settings(settings).await?))
 }
 
 pub async fn get_storage(State(service): State<ControlService>) -> Result<Json<StatisticsStorage>> {

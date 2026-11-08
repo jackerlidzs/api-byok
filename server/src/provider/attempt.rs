@@ -4,7 +4,10 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{Error, Result};
 
-use super::{keys, CallRecorder};
+use super::{
+    keys::{self, KeyRoute},
+    CallRecorder,
+};
 
 #[derive(Debug)]
 pub(crate) enum Attempt {
@@ -12,27 +15,42 @@ pub(crate) enum Attempt {
     Cancelled,
 }
 
+/// `build` creates the request for one key on that key's client.
 pub(crate) async fn send<F>(
     label: &str,
-    api_keys: &[String],
+    routes: &[KeyRoute],
     build: F,
     cancellation: &CancellationToken,
     recorder: Option<&CallRecorder>,
 ) -> Result<Attempt>
 where
-    F: Fn(&str) -> reqwest::RequestBuilder,
+    F: Fn(&reqwest::Client, &str) -> reqwest::RequestBuilder,
 {
-    for (index, api_key) in api_keys.iter().enumerate() {
-        let response = tokio::select! {
+    for (index, route) in routes.iter().enumerate() {
+        let has_next = index + 1 < routes.len();
+        let sent = tokio::select! {
             _ = cancellation.cancelled() => return Ok(Attempt::Cancelled),
-            response = build(api_key.as_str()).send() => response,
-        }?;
+            response = build(&route.client, &route.key).send() => response,
+        };
+        let response = match sent {
+            Err(error) if has_next && keys::unreachable(&error) => {
+                tracing::warn!(
+                    label,
+                    key_index = index + 1,
+                    key_count = routes.len(),
+                    %error,
+                    "provider unreachable with this API key; trying the next key"
+                );
+                continue;
+            }
+            sent => sent?,
+        };
         let status = response.status();
-        if index + 1 < api_keys.len() && keys::rejected(status) {
+        if has_next && keys::rejected(status) {
             tracing::warn!(
                 label,
                 key_index = index + 1,
-                key_count = api_keys.len(),
+                key_count = routes.len(),
                 %status,
                 "provider rejected API key; trying the next key"
             );
@@ -73,8 +91,15 @@ mod tests {
     use super::*;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    fn one_key() -> Vec<String> {
-        vec!["key".to_owned()]
+    fn route(key: &str, client: &reqwest::Client) -> KeyRoute {
+        KeyRoute {
+            key: key.to_owned(),
+            client: client.clone(),
+        }
+    }
+
+    fn one_key() -> Vec<KeyRoute> {
+        vec![route("key", &reqwest::Client::new())]
     }
 
     async fn server(response: &'static [u8]) -> String {
@@ -110,15 +135,25 @@ mod tests {
         format!("http://{address}")
     }
 
+    /// An HTTP proxy address where nothing listens.
+    async fn dead_proxy_client() -> reqwest::Client {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        drop(listener);
+        reqwest::Client::builder()
+            .proxy(reqwest::Proxy::all(format!("http://{address}")).unwrap())
+            .build()
+            .unwrap()
+    }
+
     #[tokio::test]
     async fn non_success_status_is_one_failed_attempt() {
         let url =
             server(b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 4\r\n\r\ndown").await;
-        let client = reqwest::Client::new();
         let error = send(
             "test",
             &one_key(),
-            |_| client.get(&url),
+            |client, _| client.get(&url),
             &CancellationToken::new(),
             None,
         )
@@ -133,11 +168,10 @@ mod tests {
     async fn response_body_transport_failure_is_one_failed_attempt() {
         let url =
             server(b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 100\r\n\r\nshort").await;
-        let client = reqwest::Client::new();
         let error = send(
             "test",
             &one_key(),
-            |_| client.get(&url),
+            |client, _| client.get(&url),
             &CancellationToken::new(),
             None,
         )
@@ -152,11 +186,10 @@ mod tests {
         let address = listener.local_addr().unwrap();
         drop(listener);
         let url = format!("http://{address}");
-        let client = reqwest::Client::new();
         let error = send(
             "test",
             &one_key(),
-            |_| client.get(&url),
+            |client, _| client.get(&url),
             &CancellationToken::new(),
             None,
         )
@@ -169,11 +202,36 @@ mod tests {
     async fn rejected_key_moves_to_the_next_key() {
         let url = key_server().await;
         let client = reqwest::Client::new();
-        let api_keys = ["exhausted".to_owned(), "fresh".to_owned()];
+        let routes = [route("exhausted", &client), route("fresh", &client)];
         let attempt = send(
             "test",
-            &api_keys,
-            |key| client.get(&url).bearer_auth(key),
+            &routes,
+            |client, key| client.get(&url).bearer_auth(key),
+            &CancellationToken::new(),
+            None,
+        )
+        .await
+        .unwrap();
+        let Attempt::Response(response) = attempt else {
+            panic!("expected a response");
+        };
+        assert_eq!(response.text().await.unwrap(), "ok");
+    }
+
+    #[tokio::test]
+    async fn unreachable_key_proxy_moves_to_the_next_key() {
+        let url = key_server().await;
+        let routes = [
+            route("behind-dead-proxy", &dead_proxy_client().await),
+            route(
+                "direct",
+                &reqwest::Client::builder().no_proxy().build().unwrap(),
+            ),
+        ];
+        let attempt = send(
+            "test",
+            &routes,
+            |client, key| client.get(&url).bearer_auth(key),
             &CancellationToken::new(),
             None,
         )
@@ -189,11 +247,11 @@ mod tests {
     async fn last_rejected_key_returns_its_failure() {
         let url = key_server().await;
         let client = reqwest::Client::new();
-        let api_keys = ["exhausted".to_owned(), "exhausted".to_owned()];
+        let routes = [route("exhausted", &client), route("exhausted", &client)];
         let error = send(
             "test",
-            &api_keys,
-            |key| client.get(&url).bearer_auth(key),
+            &routes,
+            |client, key| client.get(&url).bearer_auth(key),
             &CancellationToken::new(),
             None,
         )
@@ -207,11 +265,10 @@ mod tests {
 
     #[tokio::test]
     async fn missing_key_is_a_configuration_error() {
-        let client = reqwest::Client::new();
         let error = send(
             "test",
             &[],
-            |_| client.get("http://127.0.0.1:9"),
+            |client, _| client.get("http://127.0.0.1:9"),
             &CancellationToken::new(),
             None,
         )

@@ -1,11 +1,11 @@
 //! Owns reusable outbound HTTP clients configured from persisted proxy settings.
 
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use tokio::sync::RwLock;
 
 use crate::{
-    store::{ProxySettingsSecret, Store},
+    store::{KeyProxy, KeyProxyMode, ProxySettingsSecret, Store},
     Error, Result,
 };
 
@@ -22,6 +22,8 @@ struct ClientCache {
     default: Option<reqwest::Client>,
     cursor: Option<reqwest::Client>,
     provider: Option<(Duration, reqwest::Client)>,
+    /// Provider clients for API keys with their own proxy, keyed by proxy and timeout.
+    keys: HashMap<(KeyProxy, Duration), reqwest::Client>,
 }
 
 impl NetworkClients {
@@ -88,6 +90,35 @@ impl NetworkClients {
         Ok(client)
     }
 
+    /// The provider client for one API key: the shared provider client when the key follows
+    /// Proxy settings, otherwise a client that uses the key's own proxy or no proxy.
+    pub async fn key_client(&self, proxy: &KeyProxy, timeout: Duration) -> Result<reqwest::Client> {
+        if proxy.mode == KeyProxyMode::Inherit {
+            return self.provider_client(timeout).await;
+        }
+        let cache_key = (proxy.clone(), timeout);
+        if let Some(client) = self.cache.read().await.keys.get(&cache_key) {
+            return Ok(client.clone());
+        }
+        let mut builder = reqwest::Client::builder().use_native_tls().timeout(timeout);
+        builder = match proxy.mode {
+            KeyProxyMode::Custom => builder.proxy(custom_proxy(
+                &proxy.address,
+                proxy
+                    .auth_enabled
+                    .then_some((&proxy.username, &proxy.password)),
+            )?),
+            _ => builder.no_proxy(),
+        };
+        let client = builder.build()?;
+        self.cache
+            .write()
+            .await
+            .keys
+            .insert(cache_key, client.clone());
+        Ok(client)
+    }
+
     pub async fn invalidate(&self) {
         *self.cache.write().await = ClientCache::default();
     }
@@ -99,7 +130,7 @@ pub async fn client_builder(store: &Store) -> Result<reqwest::ClientBuilder> {
     // only offer legacy TLS 1.2 cipher suites unsupported by rustls.
     let mut builder = reqwest::Client::builder().use_native_tls();
     if settings.mode.is_custom() {
-        builder = builder.proxy(custom_proxy(&settings)?);
+        builder = builder.proxy(global_proxy(&settings)?);
     }
     Ok(builder)
 }
@@ -112,16 +143,25 @@ pub async fn blocking_client_builder(store: &Store) -> Result<reqwest::blocking:
     let settings = store.proxy_settings_secret().await?;
     let mut builder = reqwest::blocking::Client::builder().use_native_tls();
     if settings.mode.is_custom() {
-        builder = builder.proxy(custom_proxy(&settings)?);
+        builder = builder.proxy(global_proxy(&settings)?);
     }
     Ok(builder)
 }
 
-fn custom_proxy(settings: &ProxySettingsSecret) -> Result<reqwest::Proxy> {
-    let mut proxy = reqwest::Proxy::all(&settings.address)?
-        .no_proxy(reqwest::NoProxy::from_string(LOCAL_NO_PROXY));
-    if settings.auth_enabled {
-        proxy = proxy.basic_auth(&settings.username, &settings.password);
+fn global_proxy(settings: &ProxySettingsSecret) -> Result<reqwest::Proxy> {
+    custom_proxy(
+        &settings.address,
+        settings
+            .auth_enabled
+            .then_some((&settings.username, &settings.password)),
+    )
+}
+
+fn custom_proxy(address: &str, auth: Option<(&String, &String)>) -> Result<reqwest::Proxy> {
+    let mut proxy =
+        reqwest::Proxy::all(address)?.no_proxy(reqwest::NoProxy::from_string(LOCAL_NO_PROXY));
+    if let Some((username, password)) = auth {
+        proxy = proxy.basic_auth(username, password);
     }
     Ok(proxy)
 }
@@ -200,7 +240,7 @@ mod tests {
         });
         let settings = custom_settings(format!("http://{proxy_address}"));
         let client = reqwest::Client::builder()
-            .proxy(custom_proxy(&settings).unwrap())
+            .proxy(global_proxy(&settings).unwrap())
             .build()
             .unwrap();
 

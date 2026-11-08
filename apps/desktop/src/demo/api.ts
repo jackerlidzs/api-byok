@@ -1,4 +1,5 @@
 import type {
+  ApiKeySettings,
   CallDetail,
   CursorHarnessStatus,
   ExternalApiSettings,
@@ -88,6 +89,7 @@ let harnessStatus: CursorHarnessStatus = {
 let detailed = true;
 let portSettings = { proxy_port: 0, service_port: 0 };
 let externalApiSettings: ExternalApiSettings = { enabled: false, api_key: "" };
+let apiKeySettings: ApiKeySettings = { enabled: false, providers: {} };
 let proxySettings: ProxySettings = {
   mode: "default",
   address: "",
@@ -160,6 +162,11 @@ export function installDemoApi() {
       const scope = (body as { scope?: string } | null)?.scope ?? "details";
       storage = scope === "all" ? { call_count: 0, trace_count: 0 } : storage;
       return json(storage);
+    }
+    if (path === "/settings/api-keys" && method === "GET") return json(apiKeySettings);
+    if (path === "/settings/api-keys") {
+      apiKeySettings = body as ApiKeySettings;
+      return json(apiKeySettings);
     }
     if (path === "/settings/proxy" && method === "GET") return json(proxySettings);
     if (path === "/settings/proxy") {

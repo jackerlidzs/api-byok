@@ -42,8 +42,9 @@ pub enum ProviderKind {
 pub struct ProviderConfig {
     pub kind: ProviderKind,
     pub request_url: String,
-    /// Keys in the order to try them; later keys are used when an earlier key is rejected.
-    pub api_keys: Vec<String>,
+    /// Keys in the order to try them, each with its own client; later keys are used when an
+    /// earlier key is rejected or its proxy is unreachable.
+    pub api_keys: Vec<crate::provider::keys::KeyRoute>,
     pub custom_headers: reqwest::header::HeaderMap,
     pub max_output_tokens: Option<u64>,
     pub request_timeout: Duration,

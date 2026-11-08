@@ -111,7 +111,7 @@ impl NativeForwarder {
         {
             upstream_headers.insert("anthropic-version", "2023-06-01".parse().unwrap());
         }
-        let api_keys = keys::rotated(&model.model_hash, &model.api_key);
+        let routes = keys::routes(&self.store, &self.clients, model, self.request_timeout).await?;
         let logged_headers = upstream_headers
             .iter()
             .filter(|(name, _)| !crate::model::is_sensitive_header(name.as_str()))
@@ -122,19 +122,11 @@ impl NativeForwarder {
                     .map(|value| (name.as_str().to_owned(), Value::String(value.to_owned())))
             })
             .collect::<serde_json::Map<_, _>>();
-        let client = self.clients.provider_client(self.request_timeout).await?;
         let recorder = CallRecorder::start(self.store.clone(), new_call).await?;
         recorder
             .request(Value::Object(logged_headers), &body)
             .await?;
-        let sent = send_with_keys(
-            &client,
-            &request_url,
-            protocol,
-            upstream_headers,
-            &api_keys,
-            &body,
-        );
+        let sent = send_with_keys(&request_url, protocol, upstream_headers, &routes, &body);
         let response = match sent.await {
             Ok(response) => response,
             Err(error) => {
@@ -236,26 +228,39 @@ impl NativeForwarder {
 
 /// Sends the request with each key in turn until a key is accepted or the last key answers.
 async fn send_with_keys(
-    client: &reqwest::Client,
     request_url: &str,
     protocol: Protocol,
     headers: HeaderMap,
-    api_keys: &[String],
+    routes: &[keys::KeyRoute],
     body: &Value,
 ) -> Result<reqwest::Response> {
-    for (index, api_key) in api_keys.iter().enumerate() {
+    for (index, route) in routes.iter().enumerate() {
+        let has_next = index + 1 < routes.len();
         let mut headers = headers.clone();
-        insert_api_key(&mut headers, protocol, api_key)?;
-        let response = client
+        insert_api_key(&mut headers, protocol, &route.key)?;
+        let sent = route
+            .client
             .post(request_url)
             .headers(headers)
             .json(body)
             .send()
-            .await?;
-        if index + 1 < api_keys.len() && keys::rejected(response.status()) {
+            .await;
+        let response = match sent {
+            Err(error) if has_next && keys::unreachable(&error) => {
+                tracing::warn!(
+                    key_index = index + 1,
+                    key_count = routes.len(),
+                    %error,
+                    "provider unreachable with this API key; trying the next key"
+                );
+                continue;
+            }
+            sent => sent?,
+        };
+        if has_next && keys::rejected(response.status()) {
             tracing::warn!(
                 key_index = index + 1,
-                key_count = api_keys.len(),
+                key_count = routes.len(),
                 status = %response.status(),
                 "provider rejected API key; trying the next key"
             );
@@ -268,8 +273,13 @@ async fn send_with_keys(
 
 fn insert_api_key(headers: &mut HeaderMap, protocol: Protocol, api_key: &str) -> Result<()> {
     let (name, value) = match protocol {
-        Protocol::Messages => (header::HeaderName::from_static("x-api-key"), api_key.to_owned()),
-        Protocol::Chat | Protocol::Responses => (header::AUTHORIZATION, format!("Bearer {api_key}")),
+        Protocol::Messages => (
+            header::HeaderName::from_static("x-api-key"),
+            api_key.to_owned(),
+        ),
+        Protocol::Chat | Protocol::Responses => {
+            (header::AUTHORIZATION, format!("Bearer {api_key}"))
+        }
     };
     let value: header::HeaderValue = value
         .parse()

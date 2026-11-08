@@ -1,4 +1,5 @@
 //! Exposes the local persistence interface.
+mod api_keys;
 mod cas;
 mod checkpoints;
 mod conversations;
@@ -17,6 +18,7 @@ mod storage;
 mod tool_rounds;
 mod writer;
 
+pub use api_keys::*;
 pub use cas::*;
 pub(crate) use cursor_traces::BufferedCursorTraceChunk;
 pub(crate) use llm_calls::{BufferedLlmChunk, ContextUsageAnchor};

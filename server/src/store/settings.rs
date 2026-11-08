@@ -218,6 +218,19 @@ fn read_proxy_settings(value: &str) -> ProxySettingsSecret {
     })
 }
 
+/// Accepts an http, https, socks5 or socks5h proxy URL that reqwest can use.
+pub(crate) fn validate_proxy_address(address: &str) -> Result<()> {
+    let parsed = url::Url::parse(address)
+        .map_err(|error| crate::Error::Config(format!("invalid proxy address: {error}")))?;
+    if !matches!(parsed.scheme(), "http" | "https" | "socks5" | "socks5h") {
+        return Err(crate::Error::Config(
+            "proxy address must use http, https, socks5, or socks5h".into(),
+        ));
+    }
+    reqwest::Proxy::all(address)?;
+    Ok(())
+}
+
 impl Store {
     pub async fn external_api_settings(&self) -> Result<ExternalApiSettings> {
         let value = sqlx::query_scalar::<_, String>(
@@ -329,14 +342,7 @@ impl Store {
         let existing = self.proxy_settings_secret().await?;
         let address = input.address.trim().to_owned();
         if input.mode.is_custom() {
-            let parsed = url::Url::parse(&address)
-                .map_err(|error| crate::Error::Config(format!("invalid proxy address: {error}")))?;
-            if !matches!(parsed.scheme(), "http" | "https" | "socks5" | "socks5h") {
-                return Err(crate::Error::Config(
-                    "proxy address must use http, https, socks5, or socks5h".into(),
-                ));
-            }
-            reqwest::Proxy::all(&address)?;
+            validate_proxy_address(&address)?;
         }
         let password = if input.auth_enabled {
             input

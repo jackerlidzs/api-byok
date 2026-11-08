@@ -12,6 +12,18 @@
         }
       ]
     },
+    "003af7f478ea8a8b": {
+      "source": "当前没有模型使用此服务商。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 148,
+          "column": 15
+        }
+      ]
+    },
     "00929f23850e4ff0": {
       "source": "成功调用：{count}",
       "kind": "template",
@@ -131,7 +143,7 @@
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 183,
+          "line": 184,
           "column": 82
         },
         {
@@ -372,7 +384,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 100,
+          "line": 101,
           "column": 38
         }
       ]
@@ -394,6 +406,18 @@
         }
       ]
     },
+    "0d92a87415ae0be3": {
+      "source": "支持 http://、https://、socks5://、socks5h://，也可以在地址中写 user:pass@。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 174,
+          "column": 48
+        }
+      ]
+    },
     "0e41f8e3d59ec47b": {
       "source": "存储管理",
       "kind": "text",
@@ -401,7 +425,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 279,
+          "line": 281,
           "column": 26
         }
       ]
@@ -672,6 +696,18 @@
         }
       ]
     },
+    "1883fd6f9743b390": {
+      "source": "添加密钥",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 196,
+          "column": 49
+        }
+      ]
+    },
     "19658d9fa9aa8de4": {
       "source": "安装中…",
       "kind": "text",
@@ -701,11 +737,28 @@
         }
       ]
     },
+    "1a267273edc9e036": {
+      "source": "多 API 密钥",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 123,
+          "column": 29
+        }
+      ]
+    },
     "1a3f0617d6de8e52": {
       "source": "用户名",
       "kind": "text",
       "placeholders": [],
       "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 181,
+          "column": 33
+        },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
           "line": 59,
@@ -781,8 +834,25 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 283,
+          "line": 285,
           "column": 131
+        }
+      ]
+    },
+    "1c385469e4d77457": {
+      "source": "开启多 API 密钥",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 132,
+          "column": 20
+        },
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 135,
+          "column": 24
         }
       ]
     },
@@ -807,17 +877,17 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 70,
+          "line": 71,
           "column": 42
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 188,
+          "line": 189,
           "column": 22
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 215,
+          "line": 216,
           "column": 58
         }
       ]
@@ -855,6 +925,18 @@
           "file": "features/models/LegacyModelImport.tsx",
           "line": 65,
           "column": 20
+        }
+      ]
+    },
+    "1f3bd87fd5c9412a": {
+      "source": "请先添加模型；服务商按模型的服务地址分组。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 139,
+          "column": 61
         }
       ]
     },
@@ -916,7 +998,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 256,
+          "line": 258,
           "column": 43
         }
       ]
@@ -940,7 +1022,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 125,
+          "line": 126,
           "column": 15
         }
       ]
@@ -964,7 +1046,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 306,
+          "line": 308,
           "column": 24
         }
       ]
@@ -1131,6 +1213,11 @@
           "column": 70
         },
         {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 124,
+          "column": 98
+        },
+        {
           "file": "features/settings/CommitSettingsCard.tsx",
           "line": 167,
           "column": 78
@@ -1152,12 +1239,12 @@
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 179,
+          "line": 180,
           "column": 81
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 298,
+          "line": 300,
           "column": 22
         },
         {
@@ -1263,7 +1350,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 149,
+          "line": 150,
           "column": 15
         }
       ]
@@ -1372,6 +1459,23 @@
         }
       ]
     },
+    "311d71a2b67ad7a9": {
+      "source": "删除密钥",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 157,
+          "column": 74
+        },
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 157,
+          "column": 97
+        }
+      ]
+    },
     "3260348163d03b8e": {
       "source": "留空保持不变",
       "kind": "text",
@@ -1413,7 +1517,19 @@
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 241,
+          "line": 243,
+          "column": 27
+        }
+      ]
+    },
+    "347c2465ba97554e": {
+      "source": "批量添加",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 200,
           "column": 27
         }
       ]
@@ -1486,8 +1602,20 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 308,
+          "line": 310,
           "column": 42
+        }
+      ]
+    },
+    "387aa5b0e65d1fa9": {
+      "source": "按模型服务地址的主机名分组。没有密钥的服务商继续使用模型自己的 API 密钥。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 140,
+          "column": 43
         }
       ]
     },
@@ -1500,6 +1628,21 @@
           "file": "features/plugins/PluginManagementPage.tsx",
           "line": 246,
           "column": 32
+        }
+      ]
+    },
+    "39362115b661bb52": {
+      "source": "已添加 {added} 个密钥，跳过 {skipped} 行",
+      "kind": "template",
+      "placeholders": [
+        "added",
+        "skipped"
+      ],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 100,
+          "column": 13
         }
       ]
     },
@@ -1551,7 +1694,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 290,
+          "line": 292,
           "column": 14
         }
       ]
@@ -1580,7 +1723,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 241,
+          "line": 243,
           "column": 39
         }
       ]
@@ -1647,12 +1790,12 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 248,
+          "line": 250,
           "column": 22
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 254,
+          "line": 256,
           "column": 26
         }
       ]
@@ -1734,7 +1877,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 156,
+          "line": 157,
           "column": 66
         }
       ]
@@ -1746,7 +1889,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 274,
+          "line": 276,
           "column": 52
         }
       ]
@@ -1802,6 +1945,11 @@
       "kind": "text",
       "placeholders": [],
       "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 178,
+          "column": 85
+        },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
           "line": 55,
@@ -2196,7 +2344,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 177,
+          "line": 178,
           "column": 26
         }
       ]
@@ -2319,7 +2467,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 234,
+          "line": 236,
           "column": 78
         }
       ]
@@ -2358,6 +2506,18 @@
         }
       ]
     },
+    "59d9c34db529d06e": {
+      "source": "启用此密钥",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 155,
+          "column": 30
+        }
+      ]
+    },
     "5a284a1a2be8da0e": {
       "source": "从本机旧版配置读取模型；确认前会显示新增和已存在的模型。",
       "kind": "text",
@@ -2365,7 +2525,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 238,
+          "line": 240,
           "column": 21
         }
       ]
@@ -2463,11 +2623,45 @@
         }
       ]
     },
+    "5da55869ce443189": {
+      "source": "自定义代理",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 119,
+          "column": 31
+        }
+      ]
+    },
+    "5e84ea61e8386af7": {
+      "source": "代理",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 168,
+          "column": 31
+        },
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 169,
+          "column": 34
+        }
+      ]
+    },
     "5f600b307b4eb0fb": {
       "source": "API 密钥",
       "kind": "text",
       "placeholders": [],
       "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 164,
+          "column": 31
+        },
         {
           "file": "features/settings/ExternalApiSettingsCard.tsx",
           "line": 52,
@@ -2678,7 +2872,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 532,
+          "line": 555,
           "column": 43
         }
       ]
@@ -2805,7 +2999,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 100,
+          "line": 101,
           "column": 55
         }
       ]
@@ -2945,6 +3139,18 @@
         }
       ]
     },
+    "72cf5c4117e7db03": {
+      "source": "跟随代理设置",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 118,
+          "column": 32
+        }
+      ]
+    },
     "736c9dc2a04c65fd": {
       "source": "模型配置已发生变化，请刷新后重试",
       "kind": "text",
@@ -2969,7 +3175,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 167,
+          "line": 168,
           "column": 16
         }
       ]
@@ -2993,7 +3199,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 266,
+          "line": 268,
           "column": 26
         }
       ]
@@ -3017,7 +3223,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 527,
+          "line": 550,
           "column": 43
         }
       ]
@@ -3034,6 +3240,18 @@
         }
       ]
     },
+    "7ac55686b74f4cc2": {
+      "source": "为同一服务商保存多个密钥，每个密钥可使用独立代理。每次请求轮流使用下一个密钥；密钥被拒绝（401、402、403、429、5xx）或代理无法连接时，自动改用下一个密钥。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 133,
+          "column": 19
+        }
+      ]
+    },
     "7ba2d6728fe2531b": {
       "source": "确认清理",
       "kind": "text",
@@ -3041,7 +3259,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 299,
+          "line": 301,
           "column": 23
         }
       ]
@@ -3108,7 +3326,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 143,
+          "line": 144,
           "column": 83
         }
       ]
@@ -3195,7 +3413,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 461,
+          "line": 484,
           "column": 21
         }
       ]
@@ -3209,6 +3427,18 @@
           "file": "features/plugins/PluginManagementPage.tsx",
           "line": 105,
           "column": 25
+        }
+      ]
+    },
+    "822d2b6c78bcc34f": {
+      "source": "每行一个密钥，格式：密钥 | 代理。代理可留空（跟随代理设置）、填 direct（直连）或填代理地址。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 200,
+          "column": 44
         }
       ]
     },
@@ -3300,6 +3530,18 @@
         }
       ]
     },
+    "84df5b04bc4caca4": {
+      "source": "多密钥设置已保存",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 109,
+          "column": 15
+        }
+      ]
+    },
     "857d282a0213d785": {
       "source": "外部 API",
       "kind": "text",
@@ -3321,6 +3563,18 @@
           "file": "features/settings/AppLifecycleSettingsCard.tsx",
           "line": 72,
           "column": 25
+        }
+      ]
+    },
+    "86d7d13f26f1ea4c": {
+      "source": "直连（不使用代理）",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 120,
+          "column": 31
         }
       ]
     },
@@ -3452,7 +3706,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 237,
+          "line": 239,
           "column": 22
         }
       ]
@@ -3522,6 +3776,21 @@
         }
       ]
     },
+    "903c90f2283b7286": {
+      "source": "{host}（{count} 个密钥）",
+      "kind": "template",
+      "placeholders": [
+        "host",
+        "count"
+      ],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 142,
+          "column": 65
+        }
+      ]
+    },
     "90800c48a1dd0655": {
       "source": "{label} 必须是 JSON 对象",
       "kind": "template",
@@ -3579,7 +3848,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 159,
+          "line": 160,
           "column": 7
         }
       ]
@@ -3915,7 +4184,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 245,
+          "line": 247,
           "column": 26
         }
       ]
@@ -3951,7 +4220,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 63,
+          "line": 64,
           "column": 34
         }
       ]
@@ -4039,6 +4308,11 @@
           "column": 193
         },
         {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 126,
+          "column": 29
+        },
+        {
           "file": "features/settings/CommitSettingsCard.tsx",
           "line": 169,
           "column": 36
@@ -4065,7 +4339,7 @@
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 180,
+          "line": 181,
           "column": 133
         },
         {
@@ -4144,6 +4418,23 @@
         }
       ]
     },
+    "a573affa93895101": {
+      "source": "服务商",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 140,
+          "column": 27
+        },
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 141,
+          "column": 30
+        }
+      ]
+    },
     "a5fb6189a8ad011d": {
       "source": "打开教程",
       "kind": "text",
@@ -4161,6 +4452,11 @@
       "kind": "text",
       "placeholders": [],
       "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 185,
+          "column": 33
+        },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
           "line": 63,
@@ -4589,7 +4885,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 156,
+          "line": 157,
           "column": 45
         }
       ]
@@ -4615,7 +4911,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 282,
+          "line": 284,
           "column": 22
         }
       ]
@@ -4678,6 +4974,11 @@
       "kind": "text",
       "placeholders": [],
       "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 174,
+          "column": 31
+        },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
           "line": 50,
@@ -4773,7 +5074,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 283,
+          "line": 285,
           "column": 31
         }
       ]
@@ -4785,7 +5086,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 274,
+          "line": 276,
           "column": 40
         }
       ]
@@ -4921,6 +5222,20 @@
           "file": "features/plugins/PluginResourcePanels.tsx",
           "line": 368,
           "column": 66
+        }
+      ]
+    },
+    "c7657aa08321ca34": {
+      "source": "使用此服务商的模型：{models}",
+      "kind": "template",
+      "placeholders": [
+        "models"
+      ],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 147,
+          "column": 15
         }
       ]
     },
@@ -5071,12 +5386,12 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 165,
+          "line": 166,
           "column": 22
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 171,
+          "line": 172,
           "column": 20
         }
       ]
@@ -5088,7 +5403,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 202,
+          "line": 203,
           "column": 21
         }
       ]
@@ -5124,7 +5439,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 158,
+          "line": 159,
           "column": 7
         }
       ]
@@ -5492,7 +5807,7 @@
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 318,
+          "line": 320,
           "column": 30
         },
         {
@@ -5756,7 +6071,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 76,
+          "line": 77,
           "column": 17
         }
       ]
@@ -5843,6 +6158,20 @@
         }
       ]
     },
+    "e9f5c5e898471569": {
+      "source": "密钥 {index}",
+      "kind": "template",
+      "placeholders": [
+        "index"
+      ],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 153,
+          "column": 22
+        }
+      ]
+    },
     "ea26b760e930a7ca": {
       "source": "调用观测",
       "kind": "text",
@@ -5850,7 +6179,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 162,
+          "line": 163,
           "column": 26
         }
       ]
@@ -5965,7 +6294,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 221,
+          "line": 222,
           "column": 16
         }
       ]
@@ -5981,6 +6310,18 @@
           "file": "features/plugins/PluginResourcePanels.tsx",
           "line": 434,
           "column": 84
+        }
+      ]
+    },
+    "eef738a88ff2dc6b": {
+      "source": "添加到列表",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 206,
+          "column": 100
         }
       ]
     },
@@ -6126,7 +6467,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 249,
+          "line": 251,
           "column": 21
         }
       ]
@@ -6212,7 +6553,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 189,
+          "line": 190,
           "column": 21
         }
       ]
@@ -6355,6 +6696,18 @@
         }
       ]
     },
+    "fd880d19af8fad29": {
+      "source": "修改后需点击右上角的“保存”才会生效。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 208,
+          "column": 41
+        }
+      ]
+    },
     "fdc4cabc370fa3f7": {
       "source": "暂无选项",
       "kind": "text",
@@ -6410,7 +6763,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 309,
+          "line": 311,
           "column": 38
         }
       ]
@@ -6420,6 +6773,11 @@
       "kind": "text",
       "placeholders": [],
       "refs": [
+        {
+          "file": "features/settings/ApiKeySettingsCard.tsx",
+          "line": 126,
+          "column": 17
+        },
         {
           "file": "features/settings/CommitSettingsCard.tsx",
           "line": 169,
@@ -6442,7 +6800,7 @@
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 180,
+          "line": 181,
           "column": 121
         },
         {
@@ -6471,17 +6829,17 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 71,
+          "line": 72,
           "column": 46
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 201,
+          "line": 202,
           "column": 22
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 216,
+          "line": 217,
           "column": 58
         }
       ]

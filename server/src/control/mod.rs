@@ -201,6 +201,10 @@ pub fn api_router(service: ControlService) -> Router {
             get(settings::get_external_api).put(settings::update_external_api),
         )
         .route(
+            "/__byok-api__/api/settings/api-keys",
+            get(settings::get_api_keys).put(settings::update_api_keys),
+        )
+        .route(
             "/__byok-api__/api/settings/storage/statistics",
             get(settings::get_storage).delete(settings::clear_storage),
         )

@@ -93,7 +93,7 @@ impl Provider for ProviderRouter {
                     let config = ProviderConfig {
                         kind: provider_kind(provider_type),
                         request_url,
-                        api_keys: super::keys::rotated(&model.model_hash, &model.api_key),
+                        api_keys: super::keys::routes(&store, &clients, &model, request_timeout).await?,
                         custom_headers: if model.custom_headers_enabled {
                             custom_headers(
                                 &model.custom_headers,
@@ -106,8 +106,7 @@ impl Provider for ProviderRouter {
                         request_timeout,
                         allowed_body_fields: None,
                     };
-                    let client = clients.provider_client(request_timeout).await?;
-                    let provider = build_observed(&config, recorder.clone(), client)?;
+                    let provider = build_observed(&config, recorder.clone())?;
                     (recorder, guard, provider.stream(routed, cancellation.clone()))
                 };
 
@@ -331,37 +330,26 @@ pub(crate) fn custom_headers(
 }
 
 pub fn build(config: &ProviderConfig) -> Result<Arc<dyn Provider>> {
-    build_inner(config, None, None)
+    build_inner(config, None)
 }
 
-fn build_observed(
-    config: &ProviderConfig,
-    recorder: CallRecorder,
-    client: reqwest::Client,
-) -> Result<Arc<dyn Provider>> {
-    build_inner(config, Some(recorder), Some(client))
+fn build_observed(config: &ProviderConfig, recorder: CallRecorder) -> Result<Arc<dyn Provider>> {
+    build_inner(config, Some(recorder))
 }
 
 fn build_inner(
     config: &ProviderConfig,
     recorder: Option<CallRecorder>,
-    client: Option<reqwest::Client>,
 ) -> Result<Arc<dyn Provider>> {
-    let client = match client {
-        Some(client) => client,
-        None => reqwest::Client::builder()
-            .timeout(config.request_timeout)
-            .build()?,
-    };
     let provider: Arc<dyn Provider> = match config.kind {
         ProviderKind::OpenAiChat => {
-            Arc::new(OpenAiChatProvider::new(client, config.clone()).with_recorder(recorder))
+            Arc::new(OpenAiChatProvider::new(config.clone()).with_recorder(recorder))
         }
         ProviderKind::OpenAiResponses => {
-            Arc::new(OpenAiResponsesProvider::new(client, config.clone()).with_recorder(recorder))
+            Arc::new(OpenAiResponsesProvider::new(config.clone()).with_recorder(recorder))
         }
         ProviderKind::Anthropic => {
-            Arc::new(AnthropicProvider::new(client, config.clone()).with_recorder(recorder))
+            Arc::new(AnthropicProvider::new(config.clone()).with_recorder(recorder))
         }
     };
     Ok(Arc::new(NormalizedProvider::new(provider)))

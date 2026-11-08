@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type ProxySettings, type ProxySettingsInput, type StatisticsStorage, type StatisticsStorageScope, type TabSettings } from "../../shared/api";
 import { PageContent } from "../../shell/layout/PageContent";
 import { LegacyModelImport } from "../models/LegacyModelImport";
+import { ApiKeySettingsCard } from "./ApiKeySettingsCard";
 import { AppLifecycleSettingsCard } from "./AppLifecycleSettingsCard";
 import { CommitSettingsCard } from "./CommitSettingsCard";
 import { ExternalApiSettingsCard } from "./ExternalApiSettingsCard";
@@ -227,6 +228,7 @@ export function SettingsPage() {
       </TitledCard>
       <ExternalApiSettingsCard servicePort={ports.service_port} />
       <ProxySettingsCard settings={outboundProxy} draft={proxyDraft} editing={editingProxy} saving={savingProxy} onDraftChange={setProxyDraft} onEdit={editProxy} onCancel={cancelProxyEdit} onSave={() => void saveProxy()} />
+      <ApiKeySettingsCard />
       <TabSettingsCard settings={tabSettings} draft={tabDraft} editing={editingTab} saving={savingTab} onDraftChange={setTabDraft} onEdit={editTab} onCancel={cancelTabEdit} onSave={() => void saveTab()} />
       <CommitSettingsCard />
       <PricingSettingsCard />

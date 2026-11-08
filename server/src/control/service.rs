@@ -28,8 +28,9 @@ use crate::{
     plugin::{PluginDescriptor, PluginRegistry, PluginRuntime, PluginRuntimeStatus},
     provider::{is_valid_response_event, ModelEvent, Provider},
     store::{
-        CommitSettings, DesktopSettings, ExternalApiSettings, PortSettings, ProxySettings,
-        ProxySettingsInput, StatisticsStorage, Store, TabSettings, TokenPricingSettings,
+        ApiKeySettings, CommitSettings, DesktopSettings, ExternalApiSettings, KeyProxyMode,
+        PortSettings, ProxySettings, ProxySettingsInput, StatisticsStorage, Store, TabSettings,
+        TokenPricingSettings,
     },
     Error, Result,
 };
@@ -548,11 +549,6 @@ impl ControlService {
     pub async fn discover_models(&self, input: &ModelDiscoveryInput) -> Result<DiscoveredModels> {
         let client = self.clients.default_client().await?;
         let base_url = crate::model::normalize_request_url(&input.base_url)?;
-        // The key field may hold several keys; listing models needs only one.
-        let api_key = crate::provider::keys::split(&input.api_key)
-            .into_iter()
-            .next()
-            .unwrap_or_default();
         discover_models_from_endpoint(
             &client,
             match input.model_type {
@@ -560,7 +556,7 @@ impl ControlService {
                 ModelType::Anthropic => ProviderType::Anthropic,
             },
             &base_url,
-            &api_key,
+            &input.api_key,
             if input.custom_headers_enabled {
                 &input.custom_headers
             } else {
@@ -709,6 +705,25 @@ impl ControlService {
         settings: ExternalApiSettings,
     ) -> Result<ExternalApiSettings> {
         self.store.set_external_api_settings(settings).await
+    }
+
+    pub async fn api_key_settings(&self) -> Result<ApiKeySettings> {
+        self.store.api_key_settings().await
+    }
+
+    pub async fn set_api_key_settings(&self, settings: ApiKeySettings) -> Result<ApiKeySettings> {
+        let local_proxy_port = match self.cursor_harness.proxy_port().await {
+            Some(port) => port,
+            None => self.store.port_settings().await?.proxy_port,
+        };
+        for key in settings.providers.values().flatten() {
+            if key.proxy.mode == KeyProxyMode::Custom {
+                crate::network::reject_self_proxy(key.proxy.address.trim(), local_proxy_port)?;
+            }
+        }
+        let settings = self.store.set_api_key_settings(settings).await?;
+        self.clients.invalidate().await;
+        Ok(settings)
     }
 
     pub async fn set_ports(&self, settings: PortSettings) -> Result<PortSettings> {

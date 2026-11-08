@@ -1,0 +1,125 @@
+@use "../../styles/typography" as type;
+
+.content {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+
+  > :last-child {
+    flex-shrink: 0;
+  }
+}
+
+.description {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+
+  small {
+    color: var(--vscode-descriptionForeground);
+    font-size: type.$font-size-xs;
+  }
+}
+
+.note {
+  color: var(--vscode-descriptionForeground);
+  font-size: type.$font-size-xs;
+  overflow-wrap: anywhere;
+}
+
+.actionGroup,
+.keyActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.key {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-input-border, transparent));
+  border-radius: 6px;
+}
+
+.keyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.proxyFields {
+  display: grid;
+  gap: 12px;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--vscode-descriptionForeground);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--vscode-errorForeground);
+    background: var(--vscode-toolbar-hoverBackground);
+  }
+
+  &:disabled {
+    opacity: .5;
+    cursor: default;
+  }
+}
+
+.addRow {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.bulk {
+  width: 100%;
+  min-height: 84px;
+  padding: 8px 10px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 5px;
+  outline: none;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: type.$font-size-xs;
+  resize: vertical;
+
+  &:focus {
+    border-color: var(--vscode-focusBorder);
+  }
+
+  &:disabled {
+    opacity: .6;
+  }
+}
+
+@media (max-width: 680px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

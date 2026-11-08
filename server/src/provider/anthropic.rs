@@ -21,15 +21,13 @@ use super::{
 const DEFAULT_MAX_OUTPUT_TOKENS: u64 = 65_000;
 
 pub struct AnthropicProvider {
-    client: reqwest::Client,
     config: ProviderConfig,
     recorder: Option<CallRecorder>,
 }
 
 impl AnthropicProvider {
-    pub fn new(client: reqwest::Client, config: ProviderConfig) -> Self {
+    pub fn new(config: ProviderConfig) -> Self {
         Self {
-            client,
             config,
             recorder: None,
         }
@@ -47,7 +45,6 @@ impl Provider for AnthropicProvider {
         invocation: ModelInvocation,
         cancellation: tokio_util::sync::CancellationToken,
     ) -> ProviderStream {
-        let client = self.client.clone();
         let config = self.config.clone();
         let recorder = self.recorder.clone();
         Box::pin(try_stream! {
@@ -93,7 +90,7 @@ impl Provider for AnthropicProvider {
             let attempt = send(
                 "Anthropic",
                 &config.api_keys,
-                |api_key| client.post(&config.request_url)
+                |client, api_key| client.post(&config.request_url)
                     .header("x-api-key", api_key).header("anthropic-version", "2023-06-01")
                     .headers(config.custom_headers.clone())
                     .json(&body),
