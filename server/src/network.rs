@@ -100,17 +100,7 @@ impl NetworkClients {
         if let Some(client) = self.cache.read().await.keys.get(&cache_key) {
             return Ok(client.clone());
         }
-        let mut builder = reqwest::Client::builder().use_native_tls().timeout(timeout);
-        builder = match proxy.mode {
-            KeyProxyMode::Custom => builder.proxy(custom_proxy(
-                &proxy.address,
-                proxy
-                    .auth_enabled
-                    .then_some((&proxy.username, &proxy.password)),
-            )?),
-            _ => builder.no_proxy(),
-        };
-        let client = builder.build()?;
+        let client = own_proxy_client(proxy, timeout)?;
         self.cache
             .write()
             .await
@@ -119,9 +109,37 @@ impl NetworkClients {
         Ok(client)
     }
 
+    /// Like `key_client`, but never caches a client for the key's own proxy, so testing
+    /// unsaved proxies leaves nothing behind.
+    pub async fn key_test_client(
+        &self,
+        proxy: &KeyProxy,
+        timeout: Duration,
+    ) -> Result<reqwest::Client> {
+        if proxy.mode == KeyProxyMode::Inherit {
+            return self.provider_client(timeout).await;
+        }
+        own_proxy_client(proxy, timeout)
+    }
+
     pub async fn invalidate(&self) {
         *self.cache.write().await = ClientCache::default();
     }
+}
+
+/// A client for a key with its own proxy (`Custom`) or no proxy at all (`Direct`).
+fn own_proxy_client(proxy: &KeyProxy, timeout: Duration) -> Result<reqwest::Client> {
+    let builder = reqwest::Client::builder().use_native_tls().timeout(timeout);
+    let builder = match proxy.mode {
+        KeyProxyMode::Custom => builder.proxy(custom_proxy(
+            &proxy.address,
+            proxy
+                .auth_enabled
+                .then_some((&proxy.username, &proxy.password)),
+        )?),
+        _ => builder.no_proxy(),
+    };
+    Ok(builder.build()?)
 }
 
 pub async fn client_builder(store: &Store) -> Result<reqwest::ClientBuilder> {

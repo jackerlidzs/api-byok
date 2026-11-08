@@ -1,5 +1,6 @@
 import type {
   ApiKeySettings,
+  ApiKeyTestResult,
   CallDetail,
   CursorHarnessStatus,
   ExternalApiSettings,
@@ -7,6 +8,7 @@ import type {
   Model,
   Overview,
   OverviewTokenUsageBucket,
+  ProviderApiKey,
   ProxySettings,
   StatisticsStorage,
   TabSettings,
@@ -163,6 +165,10 @@ export function installDemoApi() {
       return json(storage);
     }
     if (path === "/settings/api-keys" && method === "GET") return json(apiKeySettings);
+    if (path === "/settings/api-keys/test") {
+      const { provider, key } = body as { provider: string; key: ProviderApiKey };
+      return json(demoKeyTest(provider, key));
+    }
     if (path === "/settings/api-keys") {
       apiKeySettings = body as ApiKeySettings;
       return json(apiKeySettings);
@@ -301,6 +307,18 @@ async function readBody(input: RequestInfo | URL, init?: RequestInit): Promise<u
   if (typeof raw !== "string" || raw.length === 0) return null;
   try { return JSON.parse(raw) as unknown; }
   catch { return raw; }
+}
+
+/** Demo keys shorter than 8 characters are "rejected"; a custom proxy changes the egress IP. */
+function demoKeyTest(provider: string, key: ProviderApiKey): ApiKeyTestResult {
+  const model = models.find((item) => {
+    try { return new URL(item.base_url).hostname.toLowerCase() === provider; } catch { return false; }
+  });
+  const egress_ip = key.proxy.mode === "custom" ? "203.0.113.24" : "198.51.100.7";
+  const base = { model: model?.display_name ?? null, duration_ms: 420, egress_ip, egress_error: null };
+  if (!model) return { ...base, status: "no_model", http_status: null, detail: null, duration_ms: 0 };
+  if (key.key.trim().length < 8) return { ...base, status: "rejected", http_status: 401, detail: "invalid x-api-key" };
+  return { ...base, status: "ok", http_status: 200, detail: null };
 }
 
 function json(value: unknown, status = 200) {

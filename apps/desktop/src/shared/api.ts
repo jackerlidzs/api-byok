@@ -165,6 +165,20 @@ export interface ApiKeySettings {
   providers: Record<string, ProviderApiKey[]>;
 }
 
+/** ok: provider answered; rejected: 401/402/403/429/5xx; request_failed: other HTTP error; no_model: only the connection was checked. */
+export type ApiKeyTestStatus = "ok" | "rejected" | "request_failed" | "unreachable" | "no_model";
+
+export interface ApiKeyTestResult {
+  status: ApiKeyTestStatus;
+  model: string | null;
+  http_status: number | null;
+  detail: string | null;
+  duration_ms: number;
+  /** Public IP the provider sees for this key's connection. */
+  egress_ip: string | null;
+  egress_error: string | null;
+}
+
 export type TabMode = "public" | "direct" | "custom";
 
 export interface TabSettings {
@@ -564,6 +578,7 @@ export const api = {
   clearStatisticsStorage: (scope: StatisticsStorageScope) => request<StatisticsStorage>("/settings/storage/statistics", { method: "DELETE", body: JSON.stringify({ scope }) }),
   apiKeySettings: () => request<ApiKeySettings>("/settings/api-keys"),
   setApiKeySettings: (settings: ApiKeySettings) => request<ApiKeySettings>("/settings/api-keys", { method: "PUT", body: JSON.stringify(settings) }),
+  testApiKey: (provider: string, key: ProviderApiKey) => request<ApiKeyTestResult>("/settings/api-keys/test", { method: "POST", body: JSON.stringify({ provider, key }) }),
   proxySettings: () => request<ProxySettings>("/settings/proxy"),
   setProxySettings: (settings: ProxySettingsInput) => request<ProxySettings>("/settings/proxy", { method: "PUT", body: JSON.stringify(settings) }),
   tabSettings: () => request<TabSettings>("/settings/tab"),

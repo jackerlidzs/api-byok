@@ -94,6 +94,7 @@
 .addRow {
   display: flex;
   justify-content: flex-start;
+  gap: 8px;
 }
 
 .bulk {
@@ -116,6 +117,36 @@
   &:disabled {
     opacity: .6;
   }
+}
+
+.testResult {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+
+  small {
+    font-size: type.$font-size-xs;
+    overflow-wrap: anywhere;
+  }
+}
+
+.testOk {
+  color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.testWarn {
+  color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.testError {
+  color: var(--vscode-errorForeground);
+  font-size: type.$font-size-xs;
+  overflow-wrap: anywhere;
+}
+
+.testDetail {
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, monospace);
 }
 
 @media (max-width: 680px) {
