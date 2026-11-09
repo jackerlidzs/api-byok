@@ -138,3 +138,90 @@ async fn bidi_append_gzip_body_is_decompressed_before_protobuf_decode() {
     assert!(text.contains("BidiAppend contains no AgentClientMessage"));
     assert!(!text.contains("protobuf decode error"));
 }
+
+async fn local_router() -> (tempfile::TempDir, axum::Router) {
+    let (directory, store) = fixtures::temp_store().await;
+    let assets = PromptAssets::load(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("prompt/cursor")
+            .as_path(),
+    )
+    .unwrap();
+    let clients = NetworkClients::new(store.clone());
+    let registry = TransportRegistry::new(
+        store,
+        Arc::new(fake_provider::FakeProvider::default()),
+        PromptCompiler::new(assets),
+    );
+    (directory, cursor::router(registry, clients).unwrap())
+}
+
+#[tokio::test]
+async fn bidi_append_accepts_binary_encoded_agent_client_message() {
+    let (_directory, router) = local_router().await;
+    let heartbeat = pb::AgentClientMessage {
+        message: Some(pb::agent_client_message::Message::ClientHeartbeat(
+            Default::default(),
+        )),
+    };
+    let wire = ai::BidiAppendRequest {
+        request_id: Some(ai::BidiRequestId {
+            request_id: "binary-request".into(),
+        }),
+        data_binary: heartbeat.encode_to_vec(),
+        ..Default::default()
+    }
+    .encode_to_vec();
+
+    let response = router
+        .oneshot(
+            Request::post("/aiserver.v1.BidiService/BidiAppend")
+                .header(header::CONTENT_TYPE, "application/proto")
+                .body(Body::from(wire))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // The payload is decoded; the request is only rejected because no Run selected a model.
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = to_bytes(response.into_body(), 4096).await.unwrap();
+    let text = std::str::from_utf8(&body).unwrap();
+    assert!(text.contains("must select a model"));
+    assert!(!text.contains("data_binary"));
+}
+
+#[tokio::test]
+async fn local_endpoints_read_the_request_body_before_replying() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    for path in [
+        "/aiserver.v1.ServerConfigService/GetServerConfig",
+        "/aiserver.v1.AiService/GetDefaultModelNudgeData",
+        "/aiserver.v1.NetworkService/IsConnected",
+    ] {
+        let polled = Arc::new(AtomicBool::new(false));
+        let observed = polled.clone();
+        let body = Body::from_stream(futures_util::stream::once(async move {
+            observed.store(true, Ordering::SeqCst);
+            Ok::<_, std::convert::Infallible>(axum::body::Bytes::from(vec![0_u8; 64 * 1024]))
+        }));
+
+        let (_directory, router) = local_router().await;
+        let response = router
+            .oneshot(
+                Request::post(path)
+                    .header(header::CONTENT_TYPE, "application/proto")
+                    .body(body)
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK, "{path}");
+        assert!(
+            polled.load(Ordering::SeqCst),
+            "{path} replied before reading the body"
+        );
+    }
+}

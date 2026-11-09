@@ -160,10 +160,23 @@ pub fn decode(request: &ai::BidiAppendRequest) -> Result<DecodedAppend> {
         .map(|id| id.request_id.as_str())
         .filter(|id| !id.is_empty())
         .ok_or_else(|| Error::Protocol("BidiAppend request_id is required".into()))?;
+    Ok(DecodedAppend {
+        request_id: request_id.into(),
+        seqno: request.append_seqno,
+        message: decode_payload(request)?,
+    })
+}
+
+/// Cursor 3.29+ sends the AgentClientMessage as raw protobuf bytes in
+/// `data_binary` unless the `bidi_append_binary_encoding_disabled` gate is on;
+/// older clients hex-encode the same bytes into `data`. Rejecting
+/// `data_binary` fails the first append, so RunSSE never receives the run
+/// request and Cursor reports "Connection stalled" after 30 seconds.
+fn decode_payload(request: &ai::BidiAppendRequest) -> Result<agent::AgentClientMessage> {
     if !request.data_binary.is_empty() {
-        return Err(Error::Protocol(
-            "BidiAppend data_binary is not part of the captured protocol".into(),
-        ));
+        return Ok(agent::AgentClientMessage::decode(
+            request.data_binary.as_slice(),
+        )?);
     }
     if request.data.is_empty() {
         return Err(Error::Protocol(
@@ -172,11 +185,55 @@ pub fn decode(request: &ai::BidiAppendRequest) -> Result<DecodedAppend> {
     }
     let payload = hex::decode(&request.data)
         .map_err(|error| Error::Protocol(format!("invalid BidiAppend hex: {error}")))?;
-    Ok(DecodedAppend {
-        request_id: request_id.into(),
-        seqno: request.append_seqno,
-        message: agent::AgentClientMessage::decode(payload.as_slice())?,
-    })
+    Ok(agent::AgentClientMessage::decode(payload.as_slice())?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn heartbeat() -> agent::AgentClientMessage {
+        agent::AgentClientMessage {
+            message: Some(agent::agent_client_message::Message::ClientHeartbeat(
+                Default::default(),
+            )),
+        }
+    }
+
+    fn append(data: String, data_binary: Vec<u8>) -> ai::BidiAppendRequest {
+        ai::BidiAppendRequest {
+            data,
+            request_id: Some(ai::BidiRequestId {
+                request_id: "request-1".into(),
+            }),
+            append_seqno: 7,
+            data_binary,
+        }
+    }
+
+    #[test]
+    fn decodes_binary_encoded_append() {
+        let request = append(String::new(), heartbeat().encode_to_vec());
+        let decoded = decode(&request).unwrap();
+        assert_eq!(decoded.request_id, "request-1");
+        assert_eq!(decoded.seqno, 7);
+        assert_eq!(decoded.message, heartbeat());
+    }
+
+    #[test]
+    fn decodes_hex_encoded_append() {
+        let request = append(hex::encode(heartbeat().encode_to_vec()), Vec::new());
+        let decoded = decode(&request).unwrap();
+        assert_eq!(decoded.message, heartbeat());
+    }
+
+    #[test]
+    fn rejects_append_without_payload() {
+        let error = decode(&append(String::new(), Vec::new())).err().unwrap();
+        assert!(error
+            .to_string()
+            .contains("BidiAppend contains no AgentClientMessage"));
+    }
 }
 
 pub async fn append(

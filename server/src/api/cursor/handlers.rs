@@ -3,6 +3,7 @@ use axum::{
     body::{to_bytes, Body, Bytes},
     extract::{DefaultBodyLimit, Extension, State},
     http::{header, HeaderMap, HeaderValue, Request, Response, StatusCode},
+    middleware::{self, Next},
     routing::{get, post},
     Router,
 };
@@ -158,6 +159,7 @@ fn router_with_proxy(
         .merge(tab::router())
         .route_layer(DefaultBodyLimit::disable())
         .route_layer(RequestDecompressionLayer::new())
+        .route_layer(middleware::from_fn(read_request_body))
         .fallback(proxy::forward)
         .method_not_allowed_fallback(proxy::forward)
         .layer(Extension(proxy))
@@ -169,6 +171,16 @@ fn router_with_proxy(
 
 async fn health() -> StatusCode {
     StatusCode::NO_CONTENT
+}
+
+/// Several local endpoints (GetServerConfig, GetDefaultModelNudgeData, ...)
+/// answer without looking at the request payload. Replying before the client
+/// finishes uploading makes hyper drop the connection, which Cursor reports as
+/// `write ECONNABORTED` / 502. Reading the whole body first keeps every locally
+/// answered request on a healthy connection.
+async fn read_request_body(request: Request<Body>, next: Next) -> Result<Response<Body>> {
+    let (parts, body) = buffered(request).await?;
+    Ok(next.run(Request::from_parts(parts, Body::from(body))).await)
 }
 
 /// `NetworkService/IsConnected` probe. Cursor's always-local extension checks
