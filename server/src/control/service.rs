@@ -655,6 +655,19 @@ impl ControlService {
         Ok(settings)
     }
 
+    /// Checks one (possibly unsaved) key: the IP its connection uses and whether the provider
+    /// accepts it.
+    pub async fn test_api_key(
+        &self,
+        input: super::key_test::ApiKeyTestInput,
+    ) -> Result<super::key_test::ApiKeyTestResult> {
+        let local_proxy_port = match self.cursor_harness.proxy_port().await {
+            Some(port) => port,
+            None => self.store.port_settings().await?.proxy_port,
+        };
+        super::key_test::run(&self.store, &self.clients, input, local_proxy_port).await
+    }
+
     pub async fn set_ports(&self, settings: PortSettings) -> Result<PortSettings> {
         self.store.set_port_settings(settings).await?;
         Ok(settings)

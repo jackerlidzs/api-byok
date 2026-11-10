@@ -2,6 +2,7 @@
 pub mod access;
 mod calls;
 mod harness;
+mod key_test;
 mod models;
 mod overview;
 mod plugins;
@@ -194,6 +195,10 @@ pub fn api_router(service: ControlService) -> Router {
         .route(
             "/__byok-api__/api/settings/api-keys",
             get(settings::get_api_keys).put(settings::update_api_keys),
+        )
+        .route(
+            "/__byok-api__/api/settings/api-keys/test",
+            post(settings::test_api_key),
         )
         .route(
             "/__byok-api__/api/settings/storage/statistics",

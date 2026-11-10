@@ -84,10 +84,15 @@ struct Inner {
 
 impl CursorHarness {
     pub fn new(store: Store) -> Result<Self> {
+        let ca = CaManager::managed()?;
+        // A redeployed container keeps the CA on its disk but loses the system trust store.
+        if let Err(error) = ca.trust_automatically() {
+            tracing::warn!(%error, "could not add the CA to the system trust store");
+        }
         Ok(Self {
             inner: Arc::new(Inner {
                 store,
-                ca: CaManager::managed()?,
+                ca,
                 ca_initialization: Mutex::new(()),
                 backend_addr: RwLock::new(None),
                 tab_mode: Arc::new(RwLock::new(TabMode::default())),

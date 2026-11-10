@@ -4,17 +4,13 @@ FROM node:22-bookworm-slim AS web
 WORKDIR /src/apps/desktop
 COPY apps/desktop/package.json apps/desktop/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
-COPY apps/desktop/index.html apps/desktop/tsconfig.json apps/desktop/tsconfig.node.json apps/desktop/vite.config.ts ./
-COPY apps/desktop/plugins/ plugins/
-COPY apps/desktop/public/ public/
-COPY apps/desktop/src/ src/
+COPY apps/desktop/ ./
 RUN npm run build
 
 FROM rust:1-bookworm AS server
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY server/ server/
-# Workspace members: the server depends on semble-core, and cargo loads every member manifest.
 COPY crates/ crates/
 COPY support/benchmarks/semble/ support/benchmarks/semble/
 COPY apps/desktop/src-tauri/Cargo.toml apps/desktop/src-tauri/Cargo.toml
@@ -40,17 +36,16 @@ RUN apt-get update && \
 
 COPY --from=server /tmp/cursor-server /usr/local/bin/cursor-server
 COPY --from=web /src/apps/desktop/dist/ /app/console/
-COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 ENV CURSOR_LISTEN_ADDR=0.0.0.0:3000 \
     CURSOR_DATABASE_URL=sqlite:///data/cursor-server.db \
     CURSOR_CONSOLE_DIR=/app/console \
+    CURSOR_DATA_DIR=/data/cursor-byok-v3 \
+    CURSOR_TRUST_CA=1 \
     RUST_LOG=cursor_server=info
 
-# The container starts as root only to take ownership of /data (mounted disks such as
-# Render's are owned by root); the entrypoint then runs the server as cursor-byok.
 EXPOSE 3000
 VOLUME ["/data"]
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
     CMD curl --fail --silent http://127.0.0.1:3000/__byok-api__/healthz || exit 1
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/cursor-server"]

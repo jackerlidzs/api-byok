@@ -22,6 +22,12 @@ services:
         value: sqlite:///data/cursor-server.db
       - key: CURSOR_CONSOLE_DIR
         value: /app/console
+      # CA, plugins and caches; on the disk so the CA survives redeploys.
+      - key: CURSOR_DATA_DIR
+        value: /data/cursor-byok-v3
+      # Add the CA to the container's trust store at startup (the store is reset on each deploy).
+      - key: CURSOR_TRUST_CA
+        value: "1"
       # Password for the console and control API at /__byok-api__/ (HTTP Basic, any username).
       # Render generates it on the first Blueprint sync; read it under Environment.
       # Without it the server, which listens on 0.0.0.0, turns the console off.

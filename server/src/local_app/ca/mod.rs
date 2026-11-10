@@ -93,8 +93,10 @@ impl CaManager {
             )),
             "linux" => {
                 let anchor = linux_anchor_file();
+                // Containers (e.g. Render) run as root and usually have no sudo.
+                let sudo = if running_as_root() { "" } else { "sudo " };
                 Some(format!(
-                    "sudo cp '{}' '{}' && sudo {}",
+                    "{sudo}cp '{}' '{}' && {sudo}{}",
                     path,
                     anchor.display(),
                     linux_refresh_command()
@@ -113,7 +115,43 @@ impl CaManager {
             CaState::Missing => self.generate()?,
             CaState::Untrusted => {}
         }
+        self.trust_automatically()?;
         Ok(())
+    }
+
+    /// With `CURSOR_TRUST_CA=1` on Linux as root (a container), adds the existing CA to the
+    /// system trust store, so it is trusted again after each redeploy without a manual command.
+    /// Returns whether the CA is trusted afterwards.
+    pub fn trust_automatically(&self) -> Result<bool> {
+        if !auto_trust_enabled() {
+            return Ok(false);
+        }
+        let cert = match fs::read_to_string(self.cert_path()) {
+            Ok(cert) => cert,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+            Err(error) => return Err(error.into()),
+        };
+        if is_installed(&cert)? {
+            return Ok(true);
+        }
+        let anchor = linux_anchor_file();
+        if let Some(dir) = anchor.parent() {
+            fs::create_dir_all(dir)?;
+        }
+        fs::write(&anchor, &cert)?;
+        let mut command = linux_refresh_command().split_whitespace();
+        let program = command.next().unwrap_or("update-ca-certificates");
+        let status = std::process::Command::new(program)
+            .args(command)
+            .stdout(std::process::Stdio::null())
+            .status()?;
+        if !status.success() {
+            return Err(Error::Config(format!(
+                "{} failed with {status}",
+                linux_refresh_command()
+            )));
+        }
+        Ok(true)
     }
 
     fn generate(&self) -> Result<()> {
@@ -217,6 +255,32 @@ fn is_installed(cert: &str) -> Result<bool> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(error) => Err(error.into()),
     }
+}
+
+/// Whether the effective user is root, read from `/proc/self/status` (Linux only).
+fn running_as_root() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        fs::read_to_string("/proc/self/status")
+            .ok()
+            .and_then(|status| {
+                status.lines().find_map(|line| {
+                    line.strip_prefix("Uid:")
+                        .map(|ids| ids.split_whitespace().nth(1) == Some("0"))
+                })
+            })
+            .unwrap_or(false)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
+    }
+}
+
+fn auto_trust_enabled() -> bool {
+    let requested = std::env::var("CURSOR_TRUST_CA")
+        .is_ok_and(|value| matches!(value.trim(), "1" | "true" | "yes"));
+    requested && running_as_root()
 }
 
 const LINUX_ANCHOR_NAME: &str = "cursor-byok-local-ca.crt";

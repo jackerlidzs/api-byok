@@ -13,7 +13,10 @@ use crate::store::{
     TabSettings, TokenPricingSettings,
 };
 
-use super::{ControlService, ObservabilitySettings};
+use super::{
+    key_test::{ApiKeyTestInput, ApiKeyTestResult},
+    ControlService, ObservabilitySettings,
+};
 
 pub async fn get(State(service): State<ControlService>) -> Result<Json<ObservabilitySettings>> {
     Ok(Json(service.observability().await?))
@@ -59,6 +62,13 @@ pub async fn update_api_keys(
     Json(settings): Json<ApiKeySettings>,
 ) -> Result<Json<ApiKeySettings>> {
     Ok(Json(service.set_api_key_settings(settings).await?))
+}
+
+pub async fn test_api_key(
+    State(service): State<ControlService>,
+    Json(input): Json<ApiKeyTestInput>,
+) -> Result<Json<ApiKeyTestResult>> {
+    Ok(Json(service.test_api_key(input).await?))
 }
 
 pub async fn get_storage(State(service): State<ControlService>) -> Result<Json<StatisticsStorage>> {

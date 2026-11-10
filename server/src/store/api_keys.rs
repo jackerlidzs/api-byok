@@ -138,7 +138,8 @@ fn normalize(settings: ApiKeySettings) -> Result<ApiKeySettings> {
     })
 }
 
-fn normalize_proxy(proxy: KeyProxy, label: &str) -> Result<KeyProxy> {
+/// Validates one key's proxy and drops the fields its mode does not use.
+pub(crate) fn normalize_proxy(proxy: KeyProxy, label: &str) -> Result<KeyProxy> {
     if proxy.mode != KeyProxyMode::Custom {
         return Ok(KeyProxy {
             mode: proxy.mode,
