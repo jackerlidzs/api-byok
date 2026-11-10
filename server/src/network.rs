@@ -84,6 +84,7 @@ impl NetworkClients {
         }
         let client = client_builder(&self.store)
             .await?
+            .connect_timeout(PROVIDER_CONNECT_TIMEOUT)
             .timeout(timeout)
             .build()?;
         cache.provider = Some((timeout, client.clone()));
@@ -127,9 +128,17 @@ impl NetworkClients {
     }
 }
 
+/// How long connecting to a provider, or through a key's proxy, may take before the call moves on
+/// to the next key. Without it a proxy that drops packets holds the call for the system's TCP
+/// connect timeout.
+const PROVIDER_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+
 /// A client for a key with its own proxy (`Custom`) or no proxy at all (`Direct`).
 fn own_proxy_client(proxy: &KeyProxy, timeout: Duration) -> Result<reqwest::Client> {
-    let builder = reqwest::Client::builder().use_native_tls().timeout(timeout);
+    let builder = reqwest::Client::builder()
+        .use_native_tls()
+        .connect_timeout(PROVIDER_CONNECT_TIMEOUT)
+        .timeout(timeout);
     let builder = match proxy.mode {
         KeyProxyMode::Custom => builder.proxy(custom_proxy(
             &proxy.address,
@@ -293,5 +302,32 @@ mod tests {
                 .is_err(),
             "loopback destination unexpectedly reached the configured proxy"
         );
+    }
+
+    #[tokio::test]
+    async fn a_proxy_that_never_answers_gives_up_as_a_connect_failure() {
+        let proxy = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = proxy.local_addr().unwrap();
+        let silent = tokio::spawn(async move {
+            let (socket, _) = proxy.accept().await.unwrap();
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            drop(socket);
+        });
+        let client = reqwest::Client::builder()
+            .use_native_tls()
+            .connect_timeout(Duration::from_millis(300))
+            .proxy(custom_proxy(&format!("http://{address}"), None).unwrap())
+            .build()
+            .unwrap();
+        let started = std::time::Instant::now();
+        let error = client
+            .get("https://provider.example/v1/messages")
+            .send()
+            .await
+            .unwrap_err();
+        assert!(started.elapsed() < Duration::from_secs(5));
+        // Counted as unreachable, so the call moves on to the next key.
+        assert!(crate::provider::keys::unreachable(&error), "{error:?}");
+        silent.abort();
     }
 }

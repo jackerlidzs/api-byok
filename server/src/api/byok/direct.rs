@@ -129,7 +129,19 @@ impl NativeForwarder {
             .await?;
         let sent = send_with_keys(&request_url, protocol, upstream_headers, &routes, &body);
         let response = match sent.await {
-            Ok(response) => response,
+            Ok(Upstream::Accepted(response)) => response,
+            Ok(Upstream::Refused {
+                status,
+                headers,
+                body,
+            }) => {
+                recorder.response_headers(status.as_u16()).await?;
+                recorder.response_chunk(&body).await?;
+                recorder
+                    .failed(&Error::Provider(format!("upstream returned {status}")))
+                    .await?;
+                return Ok(build_response(status, &headers, Body::from(body)));
+            }
             Err(error) => {
                 recorder.failed(&error).await?;
                 return Err(error);
@@ -139,7 +151,7 @@ impl NativeForwarder {
         recorder.response_headers(status.as_u16()).await?;
         let headers = response.headers().clone();
         let stream = body.get("stream").and_then(Value::as_bool).unwrap_or(false);
-        if stream && status.is_success() {
+        if stream {
             Ok(self.stream_response(protocol, response, recorder, status, &headers))
         } else {
             let bytes = match response.bytes().await {
@@ -151,26 +163,20 @@ impl NativeForwarder {
                 }
             };
             recorder.response_chunk(&bytes).await?;
-            if status.is_success() {
-                if let Ok(value) = serde_json::from_slice::<Value>(&bytes) {
-                    let summary = NativeSummary::from_value(protocol, &value);
-                    if let Some(usage) = summary.usage {
-                        recorder.usage(usage).await?;
-                    }
-                    if let Some(message) = summary.failure {
-                        recorder.failed(&Error::Provider(message)).await?;
-                    } else {
-                        recorder
-                            .completed(summary.finish.unwrap_or(FinishReason::Stop))
-                            .await?;
-                    }
+            if let Ok(value) = serde_json::from_slice::<Value>(&bytes) {
+                let summary = NativeSummary::from_value(protocol, &value);
+                if let Some(usage) = summary.usage {
+                    recorder.usage(usage).await?;
+                }
+                if let Some(message) = summary.failure {
+                    recorder.failed(&Error::Provider(message)).await?;
                 } else {
-                    recorder.completed(FinishReason::Stop).await?;
+                    recorder
+                        .completed(summary.finish.unwrap_or(FinishReason::Stop))
+                        .await?;
                 }
             } else {
-                recorder
-                    .failed(&Error::Provider(format!("upstream returned {status}")))
-                    .await?;
+                recorder.completed(FinishReason::Stop).await?;
             }
             Ok(build_response(status, &headers, Body::from(bytes)))
         }
@@ -227,14 +233,26 @@ impl NativeForwarder {
     }
 }
 
-/// Sends the request with each key in turn until a key is accepted or the last key answers.
+/// What the upstream answered the last key tried.
+enum Upstream {
+    Accepted(reqwest::Response),
+    /// A refusal, already read to tell why; relayed with its own status and headers.
+    Refused {
+        status: StatusCode,
+        headers: HeaderMap,
+        body: Bytes,
+    },
+}
+
+/// Sends the request with each key in turn until a key is accepted, the request itself is
+/// refused, or the last key answers.
 async fn send_with_keys(
     request_url: &str,
     protocol: Protocol,
     headers: HeaderMap,
     routes: &[keys::KeyRoute],
     body: &Value,
-) -> Result<reqwest::Response> {
+) -> Result<Upstream> {
     for (index, route) in routes.iter().enumerate() {
         let has_next = index + 1 < routes.len();
         let mut headers = headers.clone();
@@ -247,7 +265,11 @@ async fn send_with_keys(
             .send()
             .await;
         let response = match sent {
-            Err(error) if has_next && keys::unreachable(&error) => {
+            Err(error) if keys::unreachable(&error) => {
+                keys::record(route, keys::Outcome::Unavailable);
+                if !has_next {
+                    return Err(error.into());
+                }
                 tracing::warn!(
                     key_index = index + 1,
                     key_count = routes.len(),
@@ -258,17 +280,30 @@ async fn send_with_keys(
             }
             sent => sent?,
         };
-        keys::record(route, response.status());
-        if has_next && keys::rejected(response.status()) {
+        let status = response.status();
+        if status.is_success() {
+            keys::record(route, keys::Outcome::Served);
+            return Ok(Upstream::Accepted(response));
+        }
+        let headers = response.headers().clone();
+        let body = response.bytes().await?;
+        let outcome = keys::classify(status, &headers, &body);
+        keys::record(route, outcome);
+        if has_next && outcome.fails_over() {
             tracing::warn!(
                 key_index = index + 1,
                 key_count = routes.len(),
-                status = %response.status(),
-                "provider rejected API key; trying the next key"
+                %status,
+                ?outcome,
+                "provider refused this API key; trying the next key"
             );
             continue;
         }
-        return Ok(response);
+        return Ok(Upstream::Refused {
+            status,
+            headers,
+            body,
+        });
     }
     Err(Error::Config("model has no API key".into()))
 }

@@ -205,13 +205,13 @@ export function ApiKeySettingsCard() {
       <div className={styles.row}>
         <div className={styles.description}>
           <strong>{t("Enable multiple API keys")}</strong>
-          <small>{t("Save several keys for the same provider, each with its own proxy. While a provider has keys here, its models use only these keys, not the API key in the model. When a key is rejected (401, 402, 403, 429, 5xx) or its proxy cannot connect, the same request moves on to the next key.")}</small>
+          <small>{t("Save several keys for the same provider, each with its own proxy. While a provider has keys here, its models use only these keys, not the API key in the model. When the provider refuses a key, or its proxy cannot connect, the same request moves on to the next key at once.")}</small>
         </div>
         <Switch label={t("Enable multiple API keys")} checked={draft.enabled} disabled={disabled}
           onChange={(enabled) => setDraft((current) => ({ ...current, enabled }))} />
       </div>
 
-      <FormField label={t("Key order")} hint={t("Round robin spreads requests over every key. In order keeps using the key that last worked and only moves on when the provider refuses it, so keys are used up one after another. Either way, a key refused with 401, 402 or 403 (invalid key, out of credit) is tried last for the next 10 minutes; saving these settings clears that.")}>
+      <FormField label={t("Key order")} hint={t("Round robin spreads requests evenly over the keys that are ready. In order keeps using the key that last worked and moves on only when that key runs out, so keys are used up one after another. Either way, a key that is out of credit or quota is skipped for 5 minutes, growing to 1 hour, or until the time the provider gives; a rate-limited key until the provider's retry time; a key the provider does not accept for 30 minutes. A key whose server or proxy failed is tried after the other keys. When every key is resting, the one that recovers first is tried. Saving these settings clears all of this.")}>
         <Select ariaLabel={t("Key order")} value={draft.order} disabled={disabled} options={orderOptions}
           onChange={(order) => setDraft((current) => ({ ...current, order: order as KeyOrder }))} />
       </FormField>

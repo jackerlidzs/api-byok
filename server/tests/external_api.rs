@@ -361,6 +361,83 @@ async fn streaming_chat_returns_incremental_sse_and_tool_calls() {
 }
 
 #[tokio::test]
+async fn provider_refusals_keep_their_http_status_in_streams_and_complete_responses() {
+    let (router, provider, store, _directory) = setup().await;
+    store
+        .set_external_api_settings(ExternalApiSettings {
+            enabled: true,
+            api_key: "secret".into(),
+        })
+        .await
+        .unwrap();
+    let credit = r#"Anthropic 402 Payment Required: {"type":"error","error":{"type":"billing_error","message":"The project has insufficient quota for this request."}}"#;
+    let busy = "Anthropic 429 Too Many Requests (retry after 7s): {\"type\":\"error\"}";
+    for (path, request) in [
+        (
+            "/byok/v1/chat/completions",
+            json!({"model":"work/qwen/model","messages":[{"role":"user","content":"hi"}]}),
+        ),
+        (
+            "/byok/v1/responses",
+            json!({"model":"work/qwen/model","input":"hi"}),
+        ),
+        (
+            "/byok/v1/messages",
+            json!({"model":"work/qwen/model","max_tokens":10,"messages":[{"role":"user","content":"hi"}]}),
+        ),
+    ] {
+        for stream in [true, false] {
+            for (refusal, status, retry_after) in [
+                (credit, StatusCode::PAYMENT_REQUIRED, None),
+                (busy, StatusCode::TOO_MANY_REQUESTS, Some("7")),
+            ] {
+                provider.push_error(cursor_server::Error::Provider(refusal.into()));
+                let mut request = request.clone();
+                request["stream"] = json!(stream);
+                let response = router
+                    .clone()
+                    .oneshot(
+                        Request::builder()
+                            .method("POST")
+                            .uri(path)
+                            .header(header::CONTENT_TYPE, "application/json")
+                            .header(header::AUTHORIZATION, "Bearer secret")
+                            .body(Body::from(request.to_string()))
+                            .unwrap(),
+                    )
+                    .await
+                    .unwrap();
+                assert_eq!(response.status(), status, "{path} stream={stream}");
+                assert_eq!(
+                    response
+                        .headers()
+                        .get(header::RETRY_AFTER)
+                        .map(|value| value.to_str().unwrap()),
+                    retry_after,
+                    "{path} stream={stream}"
+                );
+                let body = to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+                let body: Value = serde_json::from_slice(&body).unwrap();
+                let message = body["error"]["message"].as_str().unwrap();
+                assert!(message.contains(&refusal[..20]), "{path}: {message}");
+            }
+        }
+    }
+
+    // An error the provider sends after accepting the request stays inside the stream.
+    provider.push_error(cursor_server::Error::Provider(
+        "Anthropic error: Overloaded".into(),
+    ));
+    let (status, body) = send(router, "POST", "/byok/v1/chat/completions", Some("secret"),
+        json!({"model":"work/qwen/model","stream":true,"messages":[{"role":"user","content":"hi"}]})).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("event: error") && body.contains("Overloaded"),
+        "{body}"
+    );
+}
+
+#[tokio::test]
 async fn chat_tool_result_keeps_the_assistant_function_name() {
     let (router, provider, store, _directory) = setup().await;
     store

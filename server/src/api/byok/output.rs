@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, HashSet},
     convert::Infallible,
+    time::Duration,
 };
 
 use axum::{
@@ -183,6 +184,51 @@ struct CancelOnDrop(CancellationToken);
 impl Drop for CancelOnDrop {
     fn drop(&mut self) {
         self.0.cancel();
+    }
+}
+
+/// How long a streaming request waits for the provider's answer before the stream opens. A
+/// refusal within this time is answered with the provider's own status; after it the stream
+/// opens anyway, because Cloudflare (in front of Render) drops a response that sends no byte for
+/// 100 seconds.
+pub(super) const ANSWER_WAIT: Duration = Duration::from_secs(30);
+
+pub(super) enum Answer {
+    /// The provider refused the request before streaming anything.
+    Refused(Error),
+    /// The events to stream, starting with any event already read.
+    Stream(ProviderStream),
+}
+
+/// Waits up to `wait` for the provider's first event, so that a refusal can still be answered
+/// with its HTTP status instead of status 200 and an error event. Leaving while waiting cancels
+/// the call, as leaving the stream does.
+pub(super) async fn wait_for_answer(
+    mut stream: ProviderStream,
+    cancellation: &CancellationToken,
+    wait: Duration,
+) -> Answer {
+    let mut cancel_if_left = CancelIfDropped(Some(cancellation.clone()));
+    let first = tokio::time::timeout(wait, stream.next()).await;
+    cancel_if_left.0 = None;
+    match first {
+        Ok(Some(Err(error))) if crate::provider::refused_status(&error).is_some() => {
+            Answer::Refused(error)
+        }
+        Ok(Some(first)) => Answer::Stream(Box::pin(
+            futures_util::stream::once(async move { first }).chain(stream),
+        )),
+        Ok(None) => Answer::Stream(Box::pin(futures_util::stream::empty::<Result<ModelEvent>>())),
+        Err(_) => Answer::Stream(stream),
+    }
+}
+
+struct CancelIfDropped(Option<CancellationToken>);
+impl Drop for CancelIfDropped {
+    fn drop(&mut self) {
+        if let Some(token) = self.0.take() {
+            token.cancel();
+        }
     }
 }
 
@@ -440,5 +486,95 @@ fn stream_events(
             }
             _ => Vec::new(),
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const WAIT: Duration = Duration::from_millis(200);
+
+    fn events(items: Vec<Result<ModelEvent>>) -> ProviderStream {
+        Box::pin(futures_util::stream::iter(items))
+    }
+
+    async fn collect(answer: Answer) -> Vec<String> {
+        let Answer::Stream(stream) = answer else {
+            panic!("expected a stream");
+        };
+        stream
+            .map(|item| match item {
+                Ok(event) => format!("{event:?}"),
+                Err(error) => error.to_string(),
+            })
+            .collect()
+            .await
+    }
+
+    #[tokio::test]
+    async fn a_refusal_before_streaming_is_returned_as_an_error() {
+        let refused =
+            Error::Provider("Anthropic 402 Payment Required: {\"type\":\"error\"}".into());
+        let answer =
+            wait_for_answer(events(vec![Err(refused)]), &CancellationToken::new(), WAIT).await;
+        assert!(
+            matches!(answer, Answer::Refused(Error::Provider(message)) if message.starts_with("Anthropic 402"))
+        );
+    }
+
+    #[tokio::test]
+    async fn the_first_event_and_errors_without_a_status_stay_in_the_stream() {
+        let streamed = collect(
+            wait_for_answer(
+                events(vec![Ok(ModelEvent::TextStart), Ok(ModelEvent::TextEnd)]),
+                &CancellationToken::new(),
+                WAIT,
+            )
+            .await,
+        )
+        .await;
+        assert_eq!(streamed, ["TextStart", "TextEnd"]);
+        let in_stream = Error::Provider("Anthropic error: Overloaded".into());
+        let streamed = collect(
+            wait_for_answer(
+                events(vec![Err(in_stream)]),
+                &CancellationToken::new(),
+                WAIT,
+            )
+            .await,
+        )
+        .await;
+        assert_eq!(streamed, ["provider error: Anthropic error: Overloaded"]);
+        let ended =
+            collect(wait_for_answer(events(Vec::new()), &CancellationToken::new(), WAIT).await)
+                .await;
+        assert!(ended.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_slow_provider_is_streamed_after_the_wait() {
+        let (sender, receiver) = tokio::sync::oneshot::channel::<()>();
+        let slow: ProviderStream = Box::pin(futures_util::stream::once(async move {
+            receiver.await.unwrap();
+            Ok::<_, Error>(ModelEvent::TextStart)
+        }));
+        let cancellation = CancellationToken::new();
+        let started = tokio::time::Instant::now();
+        let answer = wait_for_answer(slow, &cancellation, WAIT).await;
+        assert!(started.elapsed() >= WAIT);
+        assert!(!cancellation.is_cancelled());
+        sender.send(()).unwrap();
+        assert_eq!(collect(answer).await, ["TextStart"]);
+    }
+
+    #[tokio::test]
+    async fn leaving_while_waiting_cancels_the_call() {
+        let cancellation = CancellationToken::new();
+        let pending: ProviderStream =
+            Box::pin(futures_util::stream::pending::<Result<ModelEvent>>());
+        let waiting = wait_for_answer(pending, &cancellation, Duration::from_secs(60));
+        assert!(tokio::time::timeout(WAIT, waiting).await.is_err());
+        assert!(cancellation.is_cancelled());
     }
 }

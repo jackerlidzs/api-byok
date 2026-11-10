@@ -194,12 +194,33 @@ async fn generate(
     let cancellation = CancellationToken::new();
     let stream = state.provider.stream(invocation, cancellation.clone());
     if parsed.stream {
-        output::streamed(protocol, stream, cancellation, id, parsed.public_model_id)
+        match output::wait_for_answer(stream, &cancellation, output::ANSWER_WAIT).await {
+            output::Answer::Refused(error) => provider_error(error),
+            output::Answer::Stream(stream) => {
+                output::streamed(protocol, stream, cancellation, id, parsed.public_model_id)
+            }
+        }
     } else {
         match output::complete(protocol, stream, &id, &parsed.public_model_id).await {
             Ok(response) => response.into_response(),
             Err(Error::Protocol(message)) => api_error(StatusCode::BAD_REQUEST, message),
-            Err(error) => api_error(StatusCode::BAD_GATEWAY, error),
+            Err(error) => provider_error(error),
         }
     }
+}
+
+/// A failed call. When the provider refused it, the answer carries the provider's own status
+/// and retry time, so a client sees 402 (no credit) or 429 (wait and retry) instead of a
+/// generic gateway error.
+fn provider_error(error: Error) -> Response {
+    let Some((status, retry_after)) = crate::provider::refused_status(&error) else {
+        return api_error(StatusCode::BAD_GATEWAY, error);
+    };
+    let mut response = api_error(status, &error);
+    if let Some(retry_after) = retry_after {
+        response
+            .headers_mut()
+            .insert(header::RETRY_AFTER, retry_after.as_secs().into());
+    }
+    response
 }
