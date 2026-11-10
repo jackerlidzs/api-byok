@@ -376,6 +376,7 @@ fn failure(
     let retryable = match &failure {
         RunFailure::Protocol(_) => true,
         RunFailure::Provider(message) if is_rejected_request(message) => false,
+        RunFailure::Provider(message) if crate::provider::is_refusal(message) => false,
         RunFailure::Provider(_) => true,
         RunFailure::Store(_) | RunFailure::Client(_) => false,
     };
@@ -550,5 +551,34 @@ mod tests {
             None,
         );
         assert!(body_number.retryable);
+    }
+
+    #[test]
+    fn refusals_are_not_retryable() {
+        let message = "Anthropic declined to answer (stop_reason: refusal)";
+        let refusal = failure(
+            RunFailure::Provider(message.into()),
+            String::new(),
+            String::new(),
+            None,
+        );
+        assert!(!refusal.retryable);
+    }
+
+    #[test]
+    fn request_errors_sent_inside_a_stream_are_not_retryable() {
+        let rejected = "Anthropic error 400 (invalid_request_error): The model provider rejected this request.";
+        let overloaded = "Anthropic error: Overloaded";
+        let retryable = |message: &str| {
+            failure(
+                RunFailure::Provider(message.into()),
+                String::new(),
+                String::new(),
+                None,
+            )
+            .retryable
+        };
+        assert!(!retryable(rejected));
+        assert!(retryable(overloaded));
     }
 }

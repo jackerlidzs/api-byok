@@ -1,4 +1,5 @@
 //! Exposes the local control API.
+pub mod access;
 mod calls;
 mod harness;
 mod models;

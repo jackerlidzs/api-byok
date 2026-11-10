@@ -290,9 +290,19 @@ fn request_timeout_error(request_timeout: Duration) -> Error {
 
 fn normalize_provider_stream_error(error: Error, request_timeout: Duration) -> Error {
     match error {
+        // Checked before timeouts: a connect attempt the OS gives up on (about 21 seconds on
+        // Windows) also counts as a timeout, which reported the 60-minute request limit.
+        Error::Http(source) if source.is_connect() => Error::Provider(format!(
+            "could not connect to the provider or proxy: {}",
+            root_error_message(&source)
+        )),
         Error::Http(source) if source.is_timeout() => request_timeout_error(request_timeout),
         Error::Http(source) if source.is_body() => Error::Provider(format!(
             "provider stream transport failed while reading the response body: {}",
+            root_error_message(&source)
+        )),
+        Error::Http(source) if source.is_request() => Error::Provider(format!(
+            "provider request failed: {}",
             root_error_message(&source)
         )),
         error => error,
@@ -405,5 +415,26 @@ mod tests {
             request,
             "provider request timed out after 3600 seconds (60 minutes)"
         );
+    }
+
+    #[tokio::test]
+    async fn connect_failures_name_the_connection_not_the_request_timeout() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let closed = listener.local_addr().unwrap();
+        drop(listener);
+        let source = reqwest::Client::new()
+            .get(format!("http://{closed}"))
+            .send()
+            .await
+            .unwrap_err();
+        assert!(source.is_connect());
+
+        let error = normalize_provider_stream_error(Error::Http(source), Duration::from_secs(3600));
+        let Error::Provider(message) = error else {
+            panic!("connect failures must become provider errors");
+        };
+        let prefix = "could not connect to the provider or proxy: ";
+        assert!(message.starts_with(prefix), "{message}");
+        assert!(!message.contains("3600"), "{message}");
     }
 }

@@ -92,7 +92,43 @@ fn provider_event_error(label: &str, value: &serde_json::Value) -> Option<crate:
         })
         .unwrap_or("provider returned an error event without a message");
 
-    Some(crate::Error::Provider(format!("{label} error: {message}")))
+    let status = value
+        .pointer("/error/type")
+        .or_else(|| value.pointer("/response/error/code"))
+        .and_then(serde_json::Value::as_str)
+        .and_then(|kind| error_type_status(kind).map(|status| (status, kind)));
+    Some(crate::Error::Provider(match status {
+        Some((status, kind)) => format!("{label} error {status} ({kind}): {message}"),
+        None => format!("{label} error: {message}"),
+    }))
+}
+
+/// The HTTP status of an error type sent inside a stream, so the run treats it like the same
+/// error returned as a status line: a rejected request stops the run instead of being retried
+/// eight times (llm.wiro.ai rejects requests this way with HTTP 200).
+fn error_type_status(kind: &str) -> Option<u16> {
+    match kind {
+        "invalid_request_error" => Some(400),
+        "authentication_error" => Some(401),
+        "permission_error" => Some(403),
+        "not_found_error" => Some(404),
+        "request_too_large" => Some(413),
+        _ => None,
+    }
+}
+
+/// Ending of the error a provider adapter raises when the model declined to answer.
+const REFUSAL: &str = "declined to answer (stop_reason: refusal)";
+
+/// Reports a refusal as an error: passing it on as an ordinary stop shows the user an empty or
+/// cut-off reply without saying why.
+fn refusal_error(label: &str) -> crate::Error {
+    crate::Error::Provider(format!("{label} {REFUSAL}"))
+}
+
+/// The same request is likely to be declined again, so runs stop instead of retrying it.
+pub(crate) fn is_refusal(message: &str) -> bool {
+    message.ends_with(REFUSAL)
 }
 
 fn merge_extra_params(body: &mut serde_json::Value, extra: &serde_json::Value) -> Result<()> {
@@ -200,6 +236,28 @@ mod tests {
                 "response": {"error": {"message": "generation failed"}}
             }),
             "OpenAI Responses error: generation failed",
+        );
+    }
+
+    #[test]
+    fn request_errors_inside_a_stream_carry_their_http_status() {
+        assert_provider_error(
+            "Anthropic",
+            serde_json::json!({
+                "type": "error",
+                "error": {
+                    "type": "invalid_request_error",
+                    "message": "The model provider rejected this request."
+                }
+            }),
+            "Anthropic error 400 (invalid_request_error): The model provider rejected this request.",
+        );
+        assert_provider_error(
+            "OpenAI Chat",
+            serde_json::json!({
+                "error": {"type": "authentication_error", "message": "invalid key"}
+            }),
+            "OpenAI Chat error 401 (authentication_error): invalid key",
         );
     }
 

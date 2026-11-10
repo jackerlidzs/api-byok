@@ -186,6 +186,11 @@ fn is_local_path(path: &str) -> bool {
             | "/aiserver.v1.AiService/WriteGitCommitMessage"
             | "/aiserver.v1.NetworkService/IsConnected"
             | "/aiserver.v1.AnalyticsService/BootstrapStatsig"
+            | "/aiserver.v1.HealthService/Ping"
+            | "/aiserver.v1.HealthService/Unary"
+            | "/aiserver.v1.HealthService/Stream"
+            | "/aiserver.v1.HealthService/StreamSSE"
+            | "/aiserver.v1.HealthService/StreamBidiSSE"
             | "/auth/full_stripe_profile"
             | "/auth/stripe_profile"
     )
@@ -217,6 +222,14 @@ mod tests {
             "/auth/stripe_profile",
         ] {
             assert!(is_local_path(path), "{path} must not reach Cursor upstream");
+        }
+    }
+
+    #[test]
+    fn network_diagnostics_health_checks_stay_local() {
+        for method in ["Ping", "Unary", "Stream", "StreamSSE", "StreamBidiSSE"] {
+            let path = format!("/aiserver.v1.HealthService/{method}");
+            assert!(is_local_path(&path), "{path} must reach the local server");
         }
     }
 }

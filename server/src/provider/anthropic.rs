@@ -70,7 +70,7 @@ impl Provider for AnthropicProvider {
                 let tool_count = request.prompt.tools.len();
                 body["tools"] = json!(request.prompt.tools.iter().enumerate().map(|(index, tool)| {
                     let mut value = json!({
-                        "name": tool.name, "description": tool.description, "input_schema": tool.parameters
+                        "name": tool.name, "description": tool.description, "input_schema": anthropic_input_schema(&tool.parameters)
                     });
                     if index + 1 == tool_count {
                         value["cache_control"] = json!({"type": "ephemeral"});
@@ -206,13 +206,8 @@ impl Provider for AnthropicProvider {
                         if let Some(usage) = value.get("usage") {
                             merge_usage(final_usage.get_or_insert_default(), anthropic_usage(usage));
                         }
-                        finish = match value.pointer("/delta/stop_reason").and_then(Value::as_str) {
-                            Some("tool_use") => Some(FinishReason::ToolUse),
-                            Some("max_tokens" | "model_context_window_exceeded") => Some(FinishReason::Length),
-                            Some("end_turn" | "stop_sequence" | "pause_turn" | "refusal") => Some(FinishReason::Stop),
-                            None => finish,
-                            Some(_) => Some(if saw_tool { FinishReason::ToolUse } else { FinishReason::Stop }),
-                        };
+                        let stop_reason = value.pointer("/delta/stop_reason").and_then(Value::as_str);
+                        finish = anthropic_finish(stop_reason, saw_tool, finish)?;
                     }
                     "message_stop" => {
                         for (index, kind) in std::mem::take(&mut block_types) {
@@ -270,6 +265,85 @@ impl Provider for AnthropicProvider {
             }
         })
     }
+}
+
+/// Maps the `stop_reason` of a `message_delta` event onto the finish reason seen so far.
+fn anthropic_finish(
+    stop_reason: Option<&str>,
+    saw_tool: bool,
+    current: Option<FinishReason>,
+) -> Result<Option<FinishReason>> {
+    match stop_reason {
+        Some("tool_use") => Ok(Some(FinishReason::ToolUse)),
+        Some("max_tokens" | "model_context_window_exceeded") => Ok(Some(FinishReason::Length)),
+        Some("end_turn" | "stop_sequence" | "pause_turn") => Ok(Some(FinishReason::Stop)),
+        Some("refusal") => Err(super::refusal_error("Anthropic")),
+        Some(_) if saw_tool => Ok(Some(FinishReason::ToolUse)),
+        Some(_) => Ok(Some(FinishReason::Stop)),
+        None => Ok(current),
+    }
+}
+
+/// Anthropic rejects tool input schemas with `anyOf`, `oneOf`, or `allOf` at the top level
+/// (llm.wiro.ai reports only "The model provider rejected this request"), and Cursor MCP tools
+/// such as `move_agent_to_root` use them. Merges the variants into one object schema: every
+/// property of every variant, required when all `anyOf`/`oneOf` variants or any `allOf` part
+/// requires it.
+fn anthropic_input_schema(schema: &Value) -> Value {
+    const COMBINATORS: [(&str, bool); 3] = [("allOf", true), ("anyOf", false), ("oneOf", false)];
+    let Some(object) = schema.as_object() else {
+        return schema.clone();
+    };
+    if !COMBINATORS.iter().any(|(key, _)| object.contains_key(*key)) {
+        return schema.clone();
+    }
+    let mut merged = object.clone();
+    let mut properties = match merged.remove("properties") {
+        Some(Value::Object(properties)) => properties,
+        _ => serde_json::Map::new(),
+    };
+    let mut required = string_set(merged.remove("required").as_ref());
+    for (key, every_part_applies) in COMBINATORS {
+        let Some(Value::Array(variants)) = merged.remove(key) else {
+            continue;
+        };
+        let mut shared: Option<std::collections::BTreeSet<String>> = None;
+        for variant in &variants {
+            if let Some(Value::Object(variant_properties)) = variant.get("properties") {
+                for (name, property) in variant_properties {
+                    properties
+                        .entry(name.clone())
+                        .or_insert_with(|| property.clone());
+                }
+            }
+            let variant_required = string_set(variant.get("required"));
+            if every_part_applies {
+                required.extend(variant_required);
+            } else {
+                shared = Some(match shared {
+                    Some(shared) => shared.intersection(&variant_required).cloned().collect(),
+                    None => variant_required,
+                });
+            }
+        }
+        required.extend(shared.unwrap_or_default());
+    }
+    merged.insert("type".into(), json!("object"));
+    merged.insert("properties".into(), Value::Object(properties));
+    if !required.is_empty() {
+        merged.insert("required".into(), json!(required));
+    }
+    Value::Object(merged)
+}
+
+fn string_set(value: Option<&Value>) -> std::collections::BTreeSet<String> {
+    value
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect()
 }
 
 fn close_anthropic_block(
@@ -541,5 +615,87 @@ mod tests {
         assert_eq!(usage.context_input_tokens, Some(100_766));
         assert_eq!(usage.output_tokens, Some(191));
         assert_eq!(usage.total_tokens, Some(100_957));
+    }
+
+    fn finish(stop_reason: &str, saw_tool: bool) -> Option<FinishReason> {
+        anthropic_finish(Some(stop_reason), saw_tool, None).unwrap()
+    }
+
+    #[test]
+    fn stop_reasons_map_to_finish_reasons() {
+        assert_eq!(finish("end_turn", false), Some(FinishReason::Stop));
+        assert_eq!(finish("pause_turn", false), Some(FinishReason::Stop));
+        assert_eq!(finish("tool_use", true), Some(FinishReason::ToolUse));
+        assert_eq!(finish("max_tokens", true), Some(FinishReason::Length));
+        assert_eq!(finish("unknown", false), Some(FinishReason::Stop));
+        assert_eq!(finish("unknown", true), Some(FinishReason::ToolUse));
+        let kept = anthropic_finish(None, false, Some(FinishReason::Length)).unwrap();
+        assert_eq!(kept, Some(FinishReason::Length));
+    }
+
+    #[test]
+    fn refusal_is_an_error_instead_of_an_empty_stop() {
+        let refusal = anthropic_finish(Some("refusal"), true, Some(FinishReason::Stop));
+        let Err(Error::Provider(message)) = refusal else {
+            panic!("a refusal must be reported as a provider error");
+        };
+        let expected = "Anthropic declined to answer (stop_reason: refusal)";
+        assert_eq!(message, expected);
+        assert!(crate::provider::is_refusal(&message));
+    }
+
+    #[test]
+    fn top_level_any_of_is_merged_into_one_object_schema() {
+        // Shape of Cursor's `cursor-app-control-move_agent_to_root` MCP tool.
+        let path = json!({"type": "string", "minLength": 1.0});
+        let paths = json!({"type": "array", "items": {"type": "string"}, "minItems": 1.0});
+        let schema = json!({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "anyOf": [
+                {"type": "object", "additionalProperties": false,
+                 "properties": {"rootPath": path}, "required": ["rootPath"]},
+                {"type": "object", "additionalProperties": false,
+                 "properties": {"rootPaths": paths}, "required": ["rootPaths"]}
+            ]
+        });
+        let merged = anthropic_input_schema(&schema);
+        assert!(merged.get("anyOf").is_none());
+        assert_eq!(merged["type"], "object");
+        assert_eq!(merged["$schema"], schema["$schema"]);
+        assert_eq!(merged["properties"]["rootPath"], path);
+        assert_eq!(merged["properties"]["rootPaths"], paths);
+        assert!(merged.get("required").is_none());
+    }
+
+    #[test]
+    fn combinators_keep_required_fields_that_always_apply() {
+        let any_of = json!({
+            "properties": {"id": {"type": "string"}},
+            "required": ["id"],
+            "oneOf": [
+                {"properties": {"a": {"type": "string"}}, "required": ["a", "mode"]},
+                {"properties": {"b": {"type": "string"}}, "required": ["b", "mode"]}
+            ]
+        });
+        let merged = anthropic_input_schema(&any_of);
+        assert_eq!(merged["required"], json!(["id", "mode"]));
+        assert!(merged["properties"].get("a").is_some());
+        let all_of = json!({"allOf": [
+            {"properties": {"a": {"type": "string"}}, "required": ["a"]},
+            {"properties": {"b": {"type": "string"}}, "required": ["b"]}
+        ]});
+        let merged = anthropic_input_schema(&all_of);
+        assert_eq!(merged["required"], json!(["a", "b"]));
+    }
+
+    #[test]
+    fn plain_object_schemas_are_sent_unchanged() {
+        let schema = json!({
+            "type": "object",
+            "properties": {"uri": {"type": "string"}},
+            "required": ["uri"]
+        });
+        assert_eq!(anthropic_input_schema(&schema), schema);
     }
 }

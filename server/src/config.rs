@@ -58,6 +58,8 @@ pub struct Config {
     pub provider_request_timeout: Duration,
     pub provider_stream_idle_timeout: Duration,
     pub console: Option<ConsoleSource>,
+    /// Console and control API password; required when listening beyond loopback.
+    pub console_password: Option<String>,
     pub use_persisted_ports: bool,
     /// 面向用户的应用版本;桌面壳会覆盖为自身版本,用于插件 minAppVersion 门控。
     pub app_version: String,
@@ -105,12 +107,16 @@ impl Config {
             (None, Some(proxy)) => Some(ConsoleSource::Proxy(proxy)),
             (None, None) => None,
         };
+        let console_password = env::var("CURSOR_CONSOLE_PASSWORD")
+            .ok()
+            .filter(|password| !password.is_empty());
         Ok(Self {
             listen_addr,
             database_url: database_url_from_env()?,
             provider_request_timeout: request_timeout,
             provider_stream_idle_timeout: DEFAULT_PROVIDER_STREAM_IDLE_TIMEOUT,
             console,
+            console_password,
             use_persisted_ports: false,
             app_version: env!("CARGO_PKG_VERSION").into(),
         })
@@ -125,6 +131,7 @@ impl Config {
             provider_request_timeout: DEFAULT_PROVIDER_REQUEST_TIMEOUT,
             provider_stream_idle_timeout: DEFAULT_PROVIDER_STREAM_IDLE_TIMEOUT,
             console: None,
+            console_password: None,
             use_persisted_ports: true,
             app_version: env!("CARGO_PKG_VERSION").into(),
         })

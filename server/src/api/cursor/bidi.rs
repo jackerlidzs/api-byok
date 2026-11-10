@@ -1,4 +1,6 @@
 //! Accepts ordered Cursor Bidi append requests and routes them by request_id.
+use std::borrow::Cow;
+
 use prost::Message;
 
 use crate::{
@@ -173,19 +175,54 @@ pub fn decode(request: &ai::BidiAppendRequest) -> Result<DecodedAppend> {
 /// `data_binary` fails the first append, so RunSSE never receives the run
 /// request and Cursor reports "Connection stalled" after 30 seconds.
 fn decode_payload(request: &ai::BidiAppendRequest) -> Result<agent::AgentClientMessage> {
+    let payload = payload(request)?;
+    Ok(agent::AgentClientMessage::decode(payload.as_ref())?)
+}
+
+/// The client message bytes of a BidiAppend, from `data_binary` or the hex in `data`.
+pub fn payload(request: &ai::BidiAppendRequest) -> Result<Cow<'_, [u8]>> {
     if !request.data_binary.is_empty() {
-        return Ok(agent::AgentClientMessage::decode(
-            request.data_binary.as_slice(),
-        )?);
+        return Ok(Cow::Borrowed(&request.data_binary));
     }
     if request.data.is_empty() {
         return Err(Error::Protocol(
             "BidiAppend contains no AgentClientMessage".into(),
         ));
     }
-    let payload = hex::decode(&request.data)
-        .map_err(|error| Error::Protocol(format!("invalid BidiAppend hex: {error}")))?;
-    Ok(agent::AgentClientMessage::decode(payload.as_slice())?)
+    hex::decode(&request.data)
+        .map(Cow::Owned)
+        .map_err(|error| Error::Protocol(format!("invalid BidiAppend hex: {error}")))
+}
+
+pub async fn append(
+    registry: &TransportRegistry,
+    request: DecodedAppend,
+    parent: Option<TransportParent>,
+) -> Result<ai::BidiAppendResponse> {
+    let replace_closing = request.model_id().is_some();
+    let handle = registry
+        .get_or_create_for_append(&request.request_id, replace_closing)
+        .await?;
+    let _admission = handle.admit()?;
+    if let Some(conversation_id) = request.conversation_id() {
+        handle.set_conversation_id(conversation_id)?;
+    }
+    if let Some(parent) = parent {
+        handle.set_parent(parent)?;
+    }
+    if matches!(
+        request.message.message.as_ref(),
+        Some(agent::agent_client_message::Message::ClientHeartbeat(_))
+    ) {
+        handle.emit(&events::heartbeat())?;
+    }
+    handle
+        .command(TransportCommand::Append {
+            seqno: request.seqno,
+            message: Box::new(request.message),
+        })
+        .await?;
+    Ok(ai::BidiAppendResponse {})
 }
 
 #[cfg(test)]
@@ -234,35 +271,4 @@ mod tests {
             .to_string()
             .contains("BidiAppend contains no AgentClientMessage"));
     }
-}
-
-pub async fn append(
-    registry: &TransportRegistry,
-    request: DecodedAppend,
-    parent: Option<TransportParent>,
-) -> Result<ai::BidiAppendResponse> {
-    let replace_closing = request.model_id().is_some();
-    let handle = registry
-        .get_or_create_for_append(&request.request_id, replace_closing)
-        .await?;
-    let _admission = handle.admit()?;
-    if let Some(conversation_id) = request.conversation_id() {
-        handle.set_conversation_id(conversation_id)?;
-    }
-    if let Some(parent) = parent {
-        handle.set_parent(parent)?;
-    }
-    if matches!(
-        request.message.message.as_ref(),
-        Some(agent::agent_client_message::Message::ClientHeartbeat(_))
-    ) {
-        handle.emit(&events::heartbeat())?;
-    }
-    handle
-        .command(TransportCommand::Append {
-            seqno: request.seqno,
-            message: Box::new(request.message),
-        })
-        .await?;
-    Ok(ai::BidiAppendResponse {})
 }

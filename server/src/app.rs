@@ -79,16 +79,22 @@ impl App {
             clients.clone(),
         )?;
         let harness = control.cursor_harness().clone();
-        let mut router = api::router(registry.clone(), clients)?.merge(byok);
-        router = match &config.console {
+        let router = api::router(registry.clone(), clients)?.merge(byok);
+        let console = match &config.console {
             Some(ConsoleSource::Directory(directory)) => {
-                router.merge(control::web_router(control.clone(), directory))
+                control::web_router(control.clone(), directory)
             }
             Some(ConsoleSource::Proxy(target)) => {
-                router.merge(control::proxy_web_router(control.clone(), target.clone()))
+                control::proxy_web_router(control.clone(), target.clone())
             }
-            None => router.merge(control::api_router(control.clone())),
+            None => control::api_router(control.clone()),
         };
+        let console = control::access::guard(
+            console,
+            config.listen_addr,
+            config.console_password.as_deref(),
+        );
+        let router = router.merge(console);
         Ok(Self {
             router,
             registry,

@@ -21,12 +21,14 @@ use crate::{
             proto::{agent::v1 as agent, aiserver::v1 as ai},
         },
         services::{
-            account, analytics, commit_message, compatibility, entitlement::FreeEntitlementCache,
+            account, analytics, commit_message, compatibility,
+            entitlement::FreeEntitlementCache,
+            health::{self as health_service, HealthStreams},
             knowledge, model_catalog, server_config, tab,
         },
         transport::{TransportParent, TransportRegistry},
     },
-    Result,
+    local_app, Result,
 };
 
 pub fn router(
@@ -156,6 +158,26 @@ fn router_with_proxy(
         )
         .route("/auth/full_stripe_profile", get(account::stripe_profile))
         .route("/auth/stripe_profile", get(account::stripe_profile))
+        .route(
+            "/aiserver.v1.HealthService/Ping",
+            post(health_service::ping),
+        )
+        .route(
+            "/aiserver.v1.HealthService/Unary",
+            post(health_service::unary),
+        )
+        .route(
+            "/aiserver.v1.HealthService/Stream",
+            post(health_service::stream),
+        )
+        .route(
+            "/aiserver.v1.HealthService/StreamSSE",
+            post(health_service::stream_sse),
+        )
+        .route(
+            "/aiserver.v1.HealthService/StreamBidiSSE",
+            post(health_service::stream_bidi_sse),
+        )
         .merge(tab::router())
         .route_layer(DefaultBodyLimit::disable())
         .route_layer(RequestDecompressionLayer::new())
@@ -165,6 +187,7 @@ fn router_with_proxy(
         .layer(Extension(proxy))
         .layer(Extension(knowledge_service))
         .layer(Extension(free_entitlements))
+        .layer(Extension(HealthStreams::default()))
         .with_state(registry)
         .merge(web_cache)
 }
@@ -240,11 +263,24 @@ async fn run_sse_handler(
 async fn bidi_handler(
     State(registry): State<TransportRegistry>,
     Extension(proxy): Extension<CursorProxy>,
+    Extension(health_streams): Extension<HealthStreams>,
     request: Request<Body>,
 ) -> Result<Response<Body>> {
     let (parts, body) = buffered(request).await?;
     let request: ai::BidiAppendRequest = connect::decode_unary(&body)?;
-    let decoded = bidi::decode(&request)?;
+    let local_account = local_app::request_uses_local_cursor_token(&parts.headers);
+    if local_account && health_streams.append_to_existing(&request) {
+        return Ok(append_accepted());
+    }
+    let decoded = match bidi::decode(&request) {
+        Ok(decoded) => decoded,
+        // Not an Agent message: Network Diagnostics' HealthService StreamBidi also travels as
+        // BidiAppend, and the local account's health streams are answered locally.
+        Err(_) if local_account && health_streams.append_new(&request) => {
+            return Ok(append_accepted());
+        }
+        Err(error) => return Err(error),
+    };
     let first_model = decoded.model_id().map(str::to_owned);
     let conversation_id = decoded.conversation_id().map(str::to_owned);
     let trace_metadata = decoded.trace_metadata();
@@ -347,13 +383,18 @@ async fn bidi_handler(
             return Err(error);
         }
     }
-    let mut response = Response::new(axum::body::Body::empty());
+    Ok(append_accepted())
+}
+
+/// The empty `BidiAppendResponse` for an append handled locally.
+fn append_accepted() -> Response<Body> {
+    let mut response = Response::new(Body::empty());
     *response.status_mut() = StatusCode::OK;
     response.headers_mut().insert(
         header::CONTENT_TYPE,
         HeaderValue::from_static("application/proto"),
     );
-    Ok(response)
+    response
 }
 
 fn trace_outcome(
@@ -401,4 +442,96 @@ fn header_text<'a>(headers: &'a HeaderMap, name: &str) -> Result<Option<&'a str>
         .map(|value| value.to_str())
         .transpose()
         .map_err(|error| crate::Error::Protocol(format!("invalid {name} header: {error}")))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use futures_util::StreamExt;
+    use prost::Message;
+    use tokio_util::sync::CancellationToken;
+    use tower::ServiceExt;
+
+    use super::*;
+    use crate::{
+        cursor::prompting::{PromptAssets, PromptCompiler},
+        model::ModelInvocation,
+        provider::{ModelEvent, Provider, ProviderStream},
+    };
+
+    /// Network Diagnostics never call a model.
+    struct NoProvider;
+
+    impl Provider for NoProvider {
+        fn stream(
+            &self,
+            _invocation: ModelInvocation,
+            _cancellation: CancellationToken,
+        ) -> ProviderStream {
+            Box::pin(futures_util::stream::empty::<Result<ModelEvent>>())
+        }
+    }
+
+    async fn cursor_router() -> (tempfile::TempDir, Router) {
+        let directory = tempfile::tempdir().unwrap();
+        let url = format!("sqlite://{}", directory.path().join("test.db").display());
+        let store = crate::store::Store::connect(&url).await.unwrap();
+        let prompts = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("prompt/cursor");
+        let compiler = PromptCompiler::new(PromptAssets::load(prompts.as_path()).unwrap());
+        let clients = crate::network::NetworkClients::new(store.clone());
+        let registry = TransportRegistry::new(store, Arc::new(NoProvider), compiler);
+        (directory, router(registry, clients).unwrap())
+    }
+
+    fn local_post(path: &str, body: Vec<u8>) -> Request<Body> {
+        Request::post(path)
+            .header(header::CONTENT_TYPE, "application/proto")
+            .header(
+                header::AUTHORIZATION,
+                local_app::local_cursor_authorization(),
+            )
+            .body(Body::from(body))
+            .unwrap()
+    }
+
+    fn health_request(payload: &str) -> ai::HealthRequest {
+        ai::HealthRequest {
+            payload: payload.into(),
+        }
+    }
+
+    #[tokio::test]
+    async fn local_account_network_diagnostics_are_answered_locally() {
+        let (_directory, app) = cursor_router().await;
+        let ping = health_request("ping").encode_to_vec();
+        let path = "/aiserver.v1.HealthService/Ping";
+        let response = app.clone().oneshot(local_post(path, ping)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        assert_eq!(ai::HealthResponse::decode(body).unwrap().payload, "ping");
+
+        // StreamBidi: the response stream opens, then each message arrives as a BidiAppend.
+        let stream_id = ai::BidiRequestId {
+            request_id: "diagnostics-bidi".into(),
+        };
+        let opened = connect::encode_message(&stream_id).unwrap().to_vec();
+        let path = "/aiserver.v1.HealthService/StreamBidiSSE";
+        let stream = app.clone().oneshot(local_post(path, opened)).await.unwrap();
+        assert_eq!(stream.status(), StatusCode::OK);
+        let append = ai::BidiAppendRequest {
+            request_id: Some(stream_id),
+            data_binary: health_request("foo").encode_to_vec(),
+            ..Default::default()
+        };
+        let path = "/aiserver.v1.BidiService/BidiAppend";
+        let appended = local_post(path, append.encode_to_vec());
+        let appended = app.oneshot(appended).await.unwrap();
+        assert_eq!(appended.status(), StatusCode::OK);
+
+        let mut frames = stream.into_body().into_data_stream();
+        let frame = frames.next().await.unwrap().unwrap();
+        let (_, payload) = connect::decode_frames(&frame).unwrap().remove(0);
+        assert_eq!(ai::HealthResponse::decode(payload).unwrap().payload, "foo");
+    }
 }

@@ -22,6 +22,11 @@ services:
         value: sqlite:///data/cursor-server.db
       - key: CURSOR_CONSOLE_DIR
         value: /app/console
+      # Password for the console and control API at /__byok-api__/ (HTTP Basic, any username).
+      # Render generates it on the first Blueprint sync; read it under Environment.
+      # Without it the server, which listens on 0.0.0.0, turns the console off.
+      - key: CURSOR_CONSOLE_PASSWORD
+        generateValue: true
       - key: RUST_LOG
         value: cursor_server=info
     disk:
