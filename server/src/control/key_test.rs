@@ -133,11 +133,7 @@ async fn egress_ip(client: &reqwest::Client) -> std::result::Result<String, Stri
 }
 
 /// Sends one short, non-streaming request with `api_key` to `model`.
-async fn test_key(
-    client: &reqwest::Client,
-    model: &ModelConfig,
-    api_key: &str,
-) -> Result<Outcome> {
+async fn test_key(client: &reqwest::Client, model: &ModelConfig, api_key: &str) -> Result<Outcome> {
     let provider_type = model.provider_type();
     let mut headers = HeaderMap::new();
     if model.custom_headers_enabled {
@@ -153,9 +149,8 @@ async fn test_key(
         }
         _ => ("authorization", format!("Bearer {api_key}")),
     };
-    let value = HeaderValue::from_str(&auth.1).map_err(|_| {
-        Error::Config("API key contains characters not allowed in a header".into())
-    })?;
+    let value = HeaderValue::from_str(&auth.1)
+        .map_err(|_| Error::Config("API key contains characters not allowed in a header".into()))?;
     headers.insert(auth.0, value);
 
     let response = client
@@ -256,7 +251,10 @@ mod tests {
         let anthropic = request_body(ProviderType::Anthropic, "claude");
         assert_eq!(anthropic["max_tokens"], 16);
         assert_eq!(anthropic["messages"][0]["content"], TEST_PROMPT);
-        assert_eq!(request_body(ProviderType::OpenAiResponses, "gpt")["input"], TEST_PROMPT);
+        assert_eq!(
+            request_body(ProviderType::OpenAiResponses, "gpt")["input"],
+            TEST_PROMPT
+        );
         let chat = request_body(ProviderType::OpenAiChat, "gpt");
         assert_eq!(chat["model"], "gpt");
         assert!(chat.get("stream").is_none());
