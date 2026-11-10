@@ -245,6 +245,46 @@ async fn duplicate_public_model_ids_use_the_first_configured_model() {
 }
 
 #[tokio::test]
+async fn gzip_request_bodies_are_decompressed() {
+    use std::io::Write;
+
+    let (router, provider, store, _directory) = setup().await;
+    store
+        .set_external_api_settings(ExternalApiSettings {
+            enabled: true,
+            api_key: "secret".into(),
+        })
+        .await
+        .unwrap();
+    provider.push(vec![
+        ModelEvent::TextStart,
+        ModelEvent::TextDelta("world".into()),
+        ModelEvent::TextEnd,
+        ModelEvent::Done(FinishReason::Stop),
+    ]);
+    let body = json!({
+        "model": "work/qwen/model",
+        "messages": [{"role": "user", "content": "$ cd app; python -c 'print(1)'"}]
+    });
+    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    encoder.write_all(body.to_string().as_bytes()).unwrap();
+    let request = Request::post("/byok/v1/chat/completions")
+        .header(header::CONTENT_TYPE, "application/json")
+        .header(header::CONTENT_ENCODING, "gzip")
+        .header(header::AUTHORIZATION, "Bearer secret")
+        .body(Body::from(encoder.finish().unwrap()))
+        .unwrap();
+
+    let response = router.oneshot(request).await.unwrap();
+    let status = response.status();
+    let bytes = to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+    let text = String::from_utf8(bytes.to_vec()).unwrap();
+    assert_eq!(status, StatusCode::OK, "{text}");
+    assert!(text.contains("world"), "{text}");
+    assert_eq!(provider.requests().len(), 1);
+}
+
+#[tokio::test]
 async fn all_three_protocols_use_the_public_model_id() {
     let (router, provider, store, _directory) = setup().await;
     store

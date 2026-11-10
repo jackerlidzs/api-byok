@@ -81,6 +81,7 @@ impl NativeForwarder {
             detailed: false,
         };
         body["model"] = Value::String(model.model_id.clone());
+        crate::provider::strip_nul_characters(&mut body);
         let mut upstream_headers = HeaderMap::new();
         for (name, value) in incoming_headers {
             if !matches!(

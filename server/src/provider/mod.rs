@@ -131,6 +131,18 @@ pub(crate) fn is_refusal(message: &str) -> bool {
     message.ends_with(REFUSAL)
 }
 
+/// Removes U+0000 from every string in a request body. Tool output from binary files carries
+/// NUL characters, and llm.wiro.ai rejects them with "messages[N].content[M].content must be
+/// valid bounded text", which then fails every later turn of the conversation.
+pub(crate) fn strip_nul_characters(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::String(text) if text.contains('\0') => text.retain(|ch| ch != '\0'),
+        serde_json::Value::Array(items) => items.iter_mut().for_each(strip_nul_characters),
+        serde_json::Value::Object(fields) => fields.values_mut().for_each(strip_nul_characters),
+        _ => {}
+    }
+}
+
 fn merge_extra_params(body: &mut serde_json::Value, extra: &serde_json::Value) -> Result<()> {
     let extra = extra
         .as_object()
@@ -268,6 +280,23 @@ mod tests {
             &serde_json::json!({"type": "response.completed", "error": null})
         )
         .is_none());
+    }
+
+    #[test]
+    fn nul_characters_are_removed_from_every_string() {
+        let mut body = serde_json::json!({
+            "system": "rules\u{0}",
+            "messages": [{
+                "role": "user",
+                "content": [{"type": "tool_result", "content": "bin\u{0}ary\u{0}"}]
+            }],
+            "max_tokens": 1
+        });
+        strip_nul_characters(&mut body);
+        assert_eq!(body["system"], "rules");
+        assert_eq!(body["messages"][0]["content"][0]["content"], "binary");
+        assert_eq!(body["max_tokens"], 1);
+        assert!(!body.to_string().contains("\\u0000"));
     }
 
     fn assert_provider_error(label: &str, value: serde_json::Value, expected: &str) {

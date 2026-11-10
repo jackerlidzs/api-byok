@@ -15,6 +15,7 @@ use axum::{
 };
 use serde_json::{json, Value};
 use tokio_util::sync::CancellationToken;
+use tower_http::decompression::RequestDecompressionLayer;
 
 use crate::{
     model::ModelInvocation, plugin::PluginRegistry, provider::Provider, store::Store, Error,
@@ -42,6 +43,9 @@ pub fn router(
         .route("/byok/v1/chat/completions", post(chat))
         .route("/byok/v1/responses", post(responses))
         .route("/byok/v1/messages", post(messages))
+        // Accepts gzip request bodies. Render's firewall blocks ordinary coding content (shell
+        // commands, relative paths) in plain bodies but does not inspect compressed ones.
+        .route_layer(RequestDecompressionLayer::new())
         .with_state(ApiState {
             store,
             plugins,

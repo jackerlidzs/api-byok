@@ -80,6 +80,7 @@ impl Provider for AnthropicProvider {
             }
             apply_model(&mut body, &request.model)?;
             merge_extra_params(&mut body, &request.model.extra_params)?;
+            super::strip_nul_characters(&mut body);
             let request_headers = recorded_headers(
                 &config,
                 &[("content-type", "application/json"), ("anthropic-version", "2023-06-01")],
