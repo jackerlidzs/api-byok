@@ -48,6 +48,33 @@
   gap: 6px;
 }
 
+.note {
+  color: var(--vscode-descriptionForeground);
+  font-size: type.$font-size-xs;
+  overflow-wrap: anywhere;
+}
+
+.testResult {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+
+  small {
+    font-size: type.$font-size-xs;
+    overflow-wrap: anywhere;
+  }
+}
+
+.testOk {
+  color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.testError {
+  color: var(--vscode-errorForeground);
+  font-size: type.$font-size-xs;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 680px) {
   .control { width: 68%; }
 }

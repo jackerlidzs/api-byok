@@ -6,6 +6,7 @@ mod key_test;
 mod models;
 mod overview;
 mod plugins;
+mod proxy_test;
 mod service;
 mod settings;
 
@@ -207,6 +208,10 @@ pub fn api_router(service: ControlService) -> Router {
         .route(
             "/__byok-api__/api/settings/proxy",
             get(settings::get_proxy).put(settings::update_proxy),
+        )
+        .route(
+            "/__byok-api__/api/settings/proxy/test",
+            post(settings::test_proxy),
         )
         .route(
             "/__byok-api__/api/settings/tab",

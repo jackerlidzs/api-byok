@@ -217,17 +217,22 @@ fn read_proxy_settings(value: &str) -> ProxySettingsSecret {
     })
 }
 
-/// Accepts an http, https, socks5 or socks5h proxy URL that reqwest can use.
-pub(crate) fn validate_proxy_address(address: &str) -> Result<()> {
-    let parsed = url::Url::parse(address)
-        .map_err(|error| crate::Error::Config(format!("invalid proxy address: {error}")))?;
-    if !matches!(parsed.scheme(), "http" | "https" | "socks5" | "socks5h") {
-        return Err(crate::Error::Config(
-            "proxy address must use http, https, socks5, or socks5h".into(),
-        ));
+/// Reads a custom proxy address written in any supported format (see `proxy_address`) into
+/// `scheme://host:port`, moving credentials found in it into the authentication fields.
+/// Credentials in the address win over the separate fields: they were just pasted.
+pub(crate) fn normalize_proxy_input(mut input: ProxySettingsInput) -> Result<ProxySettingsInput> {
+    input.address = input.address.trim().to_owned();
+    if !input.mode.is_custom() {
+        return Ok(input);
     }
-    reqwest::Proxy::all(address)?;
-    Ok(())
+    let parsed = crate::proxy_address::parse(&input.address)?;
+    input.address = parsed.address;
+    if let Some(credentials) = parsed.credentials {
+        input.auth_enabled = true;
+        input.username = credentials.username;
+        input.password = Some(credentials.password);
+    }
+    Ok(input)
 }
 
 impl Store {
@@ -314,11 +319,9 @@ impl Store {
     }
 
     pub async fn set_proxy_settings(&self, input: ProxySettingsInput) -> Result<ProxySettings> {
+        let input = normalize_proxy_input(input)?;
         let existing = self.proxy_settings_secret().await?;
-        let address = input.address.trim().to_owned();
-        if input.mode.is_custom() {
-            validate_proxy_address(&address)?;
-        }
+        let address = input.address;
         let password = if input.auth_enabled {
             input
                 .password
@@ -629,6 +632,60 @@ mod tests {
             .unwrap();
         assert_eq!(saved.mode, ProxyMode::Custom);
         assert_eq!(saved.address, "http://127.0.0.1:7890");
+    }
+
+    #[tokio::test]
+    async fn credentials_pasted_into_the_address_move_to_the_auth_fields() {
+        let directory = tempfile::tempdir().unwrap();
+        let url = format!("sqlite://{}", directory.path().join("test.db").display());
+        let store = Store::connect(&url).await.unwrap();
+
+        let saved = store
+            .set_proxy_settings(ProxySettingsInput {
+                mode: ProxyMode::Custom,
+                address: " gate.example.net:59781:alice:pa:ss ".into(),
+                auth_enabled: false,
+                username: String::new(),
+                password: None,
+            })
+            .await
+            .unwrap();
+        assert_eq!(saved.address, "http://gate.example.net:59781");
+        assert!(saved.auth_enabled);
+        assert_eq!(saved.username, "alice");
+        assert!(saved.has_password);
+        assert_eq!(
+            store.proxy_settings_secret().await.unwrap().password,
+            "pa:ss"
+        );
+
+        // Saving the canonical address again keeps the stored password.
+        let resaved = store
+            .set_proxy_settings(ProxySettingsInput {
+                mode: ProxyMode::Custom,
+                address: saved.address.clone(),
+                auth_enabled: true,
+                username: saved.username.clone(),
+                password: None,
+            })
+            .await
+            .unwrap();
+        assert_eq!(resaved, saved);
+        assert_eq!(
+            store.proxy_settings_secret().await.unwrap().password,
+            "pa:ss"
+        );
+
+        let rejected = store
+            .set_proxy_settings(ProxySettingsInput {
+                mode: ProxyMode::Custom,
+                address: "gate.example.net".into(),
+                auth_enabled: false,
+                username: String::new(),
+                password: None,
+            })
+            .await;
+        assert!(matches!(rejected, Err(crate::Error::Config(_))));
     }
 
     #[tokio::test]

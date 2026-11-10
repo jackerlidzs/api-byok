@@ -641,13 +641,12 @@ impl ControlService {
     }
 
     pub async fn set_api_key_settings(&self, settings: ApiKeySettings) -> Result<ApiKeySettings> {
-        let local_proxy_port = match self.cursor_harness.proxy_port().await {
-            Some(port) => port,
-            None => self.store.port_settings().await?.proxy_port,
-        };
+        // Normalized first: a pasted `host:port:user:pass` is only a URL afterwards.
+        let settings = crate::store::normalize_api_key_settings(settings)?;
+        let local_proxy_port = self.local_proxy_port().await?;
         for key in settings.providers.values().flatten() {
             if key.proxy.mode == KeyProxyMode::Custom {
-                crate::network::reject_self_proxy(key.proxy.address.trim(), local_proxy_port)?;
+                crate::network::reject_self_proxy(&key.proxy.address, local_proxy_port)?;
             }
         }
         let settings = self.store.set_api_key_settings(settings).await?;
@@ -661,11 +660,16 @@ impl ControlService {
         &self,
         input: super::key_test::ApiKeyTestInput,
     ) -> Result<super::key_test::ApiKeyTestResult> {
-        let local_proxy_port = match self.cursor_harness.proxy_port().await {
-            Some(port) => port,
-            None => self.store.port_settings().await?.proxy_port,
-        };
+        let local_proxy_port = self.local_proxy_port().await?;
         super::key_test::run(&self.store, &self.clients, input, local_proxy_port).await
+    }
+
+    /// The port of the local Cursor proxy, which no outbound proxy may point at.
+    async fn local_proxy_port(&self) -> Result<u16> {
+        match self.cursor_harness.proxy_port().await {
+            Some(port) => Ok(port),
+            None => Ok(self.store.port_settings().await?.proxy_port),
+        }
     }
 
     pub async fn set_ports(&self, settings: PortSettings) -> Result<PortSettings> {
@@ -690,15 +694,32 @@ impl ControlService {
     }
 
     pub async fn set_proxy_settings(&self, settings: ProxySettingsInput) -> Result<ProxySettings> {
-        if settings.mode.is_custom() {
-            let local_proxy_port = match self.cursor_harness.proxy_port().await {
-                Some(port) => port,
-                None => self.store.port_settings().await?.proxy_port,
-            };
-            crate::network::reject_self_proxy(&settings.address, local_proxy_port)?;
-        }
+        let settings = self.checked_proxy_input(settings).await?;
         let settings = self.store.set_proxy_settings(settings).await?;
         self.clients.invalidate().await;
+        Ok(settings)
+    }
+
+    /// Checks unsaved proxy settings: the IP servers see through them and whether each
+    /// configured provider answers through them.
+    pub async fn test_proxy_settings(
+        &self,
+        settings: ProxySettingsInput,
+    ) -> Result<super::proxy_test::ProxyTestResult> {
+        let settings = self.checked_proxy_input(settings).await?;
+        super::proxy_test::run(&self.store, settings).await
+    }
+
+    /// Reads the address in any supported format and refuses the local Cursor proxy itself.
+    async fn checked_proxy_input(
+        &self,
+        settings: ProxySettingsInput,
+    ) -> Result<ProxySettingsInput> {
+        let settings = crate::store::normalize_proxy_input(settings)?;
+        if settings.mode.is_custom() {
+            let local_proxy_port = self.local_proxy_port().await?;
+            crate::network::reject_self_proxy(&settings.address, local_proxy_port)?;
+        }
         Ok(settings)
     }
 

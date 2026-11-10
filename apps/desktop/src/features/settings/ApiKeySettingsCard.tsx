@@ -40,7 +40,9 @@ function parseBulkKeys(text: string): { keys: ProviderApiKey[]; invalid: number 
       keys.push({ key, enabled: true, proxy: { ...EMPTY_PROXY } });
     } else if (proxy.toLowerCase() === "direct") {
       keys.push({ key, enabled: true, proxy: { ...EMPTY_PROXY, mode: "direct" } });
-    } else if (/^(https?|socks5h?):\/\/\S+$/i.test(proxy)) {
+    } else if (proxy.includes(":")) {
+      // Any proxy format the server reads (host:port:user:pass, user:pass@host:port, ...);
+      // the server validates it on save and moves credentials into the auth fields.
       keys.push({ key, enabled: true, proxy: { ...EMPTY_PROXY, mode: "custom", address: proxy } });
     } else {
       invalid += 1;

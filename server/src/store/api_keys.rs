@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 
-use super::{now_ms, settings::validate_proxy_address, Store};
+use super::{now_ms, Store};
 
 const API_KEY_SETTINGS_KEY: &str = "provider_api_keys";
 
@@ -93,7 +93,7 @@ impl Store {
     }
 
     pub async fn set_api_key_settings(&self, settings: ApiKeySettings) -> Result<ApiKeySettings> {
-        let settings = normalize(settings)?;
+        let settings = normalize_api_key_settings(settings)?;
         let value_json = serde_json::to_string(&settings)?;
         let _write = self.writes.lock().await;
         sqlx::query("INSERT INTO service_settings(setting_key, value_json, updated_at_ms) VALUES (?, ?, ?) ON CONFLICT(setting_key) DO UPDATE SET value_json = excluded.value_json, updated_at_ms = excluded.updated_at_ms")
@@ -106,7 +106,8 @@ impl Store {
     }
 }
 
-fn normalize(settings: ApiKeySettings) -> Result<ApiKeySettings> {
+/// Trims keys and hosts, rejects empty or duplicate keys, and normalizes each key's proxy.
+pub(crate) fn normalize_api_key_settings(settings: ApiKeySettings) -> Result<ApiKeySettings> {
     let mut providers = BTreeMap::new();
     for (host, keys) in settings.providers {
         let host = host.trim().to_ascii_lowercase();
@@ -138,7 +139,8 @@ fn normalize(settings: ApiKeySettings) -> Result<ApiKeySettings> {
     })
 }
 
-/// Validates one key's proxy and drops the fields its mode does not use.
+/// Validates one key's proxy and drops the fields its mode does not use. The address may be
+/// written in any format `proxy_address` reads; credentials found in it move to the auth fields.
 pub(crate) fn normalize_proxy(proxy: KeyProxy, label: &str) -> Result<KeyProxy> {
     if proxy.mode != KeyProxyMode::Custom {
         return Ok(KeyProxy {
@@ -146,25 +148,34 @@ pub(crate) fn normalize_proxy(proxy: KeyProxy, label: &str) -> Result<KeyProxy> 
             ..KeyProxy::default()
         });
     }
-    let address = proxy.address.trim().to_owned();
-    validate_proxy_address(&address).map_err(|error| Error::Config(format!("{label}: {error}")))?;
-    let username = proxy.username.trim().to_owned();
-    if proxy.auth_enabled && username.is_empty() {
+    let parsed = crate::proxy_address::parse(&proxy.address).map_err(|error| match error {
+        Error::Config(message) => Error::Config(format!("{label}: {message}")),
+        error => Error::Config(format!("{label}: {error}")),
+    })?;
+    let (auth_enabled, username, password) = match parsed.credentials {
+        Some(credentials) => (true, credentials.username, credentials.password),
+        None => (
+            proxy.auth_enabled,
+            proxy.username.trim().to_owned(),
+            proxy.password,
+        ),
+    };
+    if auth_enabled && username.is_empty() {
         return Err(Error::Config(format!(
             "{label}: proxy username cannot be empty"
         )));
     }
     Ok(KeyProxy {
         mode: KeyProxyMode::Custom,
-        address,
-        auth_enabled: proxy.auth_enabled,
-        username: if proxy.auth_enabled {
+        address: parsed.address,
+        auth_enabled,
+        username: if auth_enabled {
             username
         } else {
             String::new()
         },
-        password: if proxy.auth_enabled {
-            proxy.password
+        password: if auth_enabled {
+            password
         } else {
             String::new()
         },
@@ -273,6 +284,24 @@ mod tests {
                 .await;
             assert!(matches!(result, Err(Error::Config(_))));
         }
+    }
+
+    #[test]
+    fn a_pasted_proxy_with_credentials_fills_the_auth_fields() {
+        let proxy = normalize_proxy(custom("gate.example.net:8080 alice s3cret"), "Key 1").unwrap();
+        assert_eq!(proxy.address, "http://gate.example.net:8080");
+        assert!(proxy.auth_enabled);
+        assert_eq!(proxy.username, "alice");
+        assert_eq!(proxy.password, "s3cret");
+
+        let Err(Error::Config(message)) = normalize_proxy(custom("gate.example.net"), "Key 2")
+        else {
+            panic!("an address without a port must be rejected");
+        };
+        assert!(
+            message.starts_with("Key 2: invalid proxy address: "),
+            "{message}"
+        );
     }
 
     #[test]

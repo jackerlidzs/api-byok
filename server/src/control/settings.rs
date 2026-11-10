@@ -104,6 +104,14 @@ pub async fn update_proxy(
     Ok(Json(service.set_proxy_settings(settings).await?))
 }
 
+/// Tests unsaved proxy settings: the egress IP and whether each configured provider answers.
+pub async fn test_proxy(
+    State(service): State<ControlService>,
+    Json(settings): Json<ProxySettingsInput>,
+) -> Result<Json<super::proxy_test::ProxyTestResult>> {
+    Ok(Json(service.test_proxy_settings(settings).await?))
+}
+
 pub async fn get_tab(State(service): State<ControlService>) -> Result<Json<TabSettings>> {
     Ok(Json(service.tab_settings().await?))
 }

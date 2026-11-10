@@ -10,6 +10,7 @@ pub mod model;
 pub mod network;
 pub mod plugin;
 pub mod provider;
+pub mod proxy_address;
 pub mod run;
 pub mod search;
 pub mod store;

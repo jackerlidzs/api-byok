@@ -19,7 +19,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 195,
+          "line": 197,
           "column": 15
         }
       ]
@@ -138,8 +138,8 @@
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 37,
-          "column": 8
+          "line": 81,
+          "column": 10
         },
         {
           "file": "features/settings/SettingsPage.tsx",
@@ -413,7 +413,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 225,
+          "line": 227,
           "column": 50
         }
       ]
@@ -486,7 +486,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 68,
+          "line": 70,
           "column": 55
         }
       ]
@@ -520,7 +520,12 @@
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 60,
+          "line": 62,
+          "column": 60
+        },
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 17,
           "column": 60
         }
       ]
@@ -698,7 +703,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 67,
+          "line": 69,
           "column": 57
         }
       ]
@@ -734,7 +739,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 249,
+          "line": 251,
           "column": 49
         }
       ]
@@ -775,7 +780,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 170,
+          "line": 172,
           "column": 29
         }
       ]
@@ -787,17 +792,17 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 232,
+          "line": 234,
           "column": 35
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 59,
+          "line": 105,
           "column": 24
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 74,
+          "line": 120,
           "column": 50
         }
       ]
@@ -877,12 +882,12 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 179,
+          "line": 181,
           "column": 20
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 182,
+          "line": 184,
           "column": 24
         }
       ]
@@ -966,7 +971,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 186,
+          "line": 188,
           "column": 61
         }
       ]
@@ -1233,7 +1238,7 @@
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 171,
+          "line": 173,
           "column": 98
         },
         {
@@ -1253,7 +1258,7 @@
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 32,
+          "line": 72,
           "column": 66
         },
         {
@@ -1376,7 +1381,7 @@
       "refs": [
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 75,
+          "line": 121,
           "column": 134
         }
       ]
@@ -1480,12 +1485,12 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 208,
+          "line": 210,
           "column": 76
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 208,
+          "line": 210,
           "column": 99
         }
       ]
@@ -1543,7 +1548,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 256,
+          "line": 258,
           "column": 27
         }
       ]
@@ -1623,7 +1628,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 187,
+          "line": 189,
           "column": 43
         }
       ]
@@ -1650,7 +1655,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 134,
+          "line": 136,
           "column": 13
         }
       ]
@@ -1818,7 +1823,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 77,
+          "line": 79,
           "column": 11
         }
       ]
@@ -1958,13 +1963,28 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 229,
+          "line": 231,
           "column": 87
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 55,
+          "line": 101,
           "column": 59
+        }
+      ]
+    },
+    "45b3d7488e329df9": {
+      "source": "✓ 连接正常，出口 IP：{ip}（{duration} ms）",
+      "kind": "template",
+      "placeholders": [
+        "ip",
+        "duration"
+      ],
+      "refs": [
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 22,
+          "column": 43
         }
       ]
     },
@@ -2039,7 +2059,7 @@
       "refs": [
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 41,
+          "line": 86,
           "column": 29
         }
       ]
@@ -2084,7 +2104,7 @@
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 69,
+          "line": 115,
           "column": 135
         },
         {
@@ -2256,12 +2276,12 @@
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 29,
+          "line": 68,
           "column": 90
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 46,
+          "line": 91,
           "column": 166
         },
         {
@@ -2283,7 +2303,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 252,
+          "line": 254,
           "column": 74
         }
       ]
@@ -2519,7 +2539,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 206,
+          "line": 208,
           "column": 32
         }
       ]
@@ -2636,7 +2656,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 166,
+          "line": 168,
           "column": 31
         }
       ]
@@ -2648,13 +2668,29 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 219,
+          "line": 221,
           "column": 33
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 220,
+          "line": 222,
           "column": 36
+        }
+      ]
+    },
+    "5f12a30a643a1c6d": {
+      "source": "✓ {host}：已响应 HTTP {status}（{duration} ms）",
+      "kind": "template",
+      "placeholders": [
+        "host",
+        "status",
+        "duration"
+      ],
+      "refs": [
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 28,
+          "column": 63
         }
       ]
     },
@@ -2665,7 +2701,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 215,
+          "line": 217,
           "column": 33
         },
         {
@@ -2866,7 +2902,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 558,
+          "line": 582,
           "column": 43
         }
       ]
@@ -3056,8 +3092,18 @@
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 205,
+          "line": 207,
           "column": 56
+        },
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 71,
+          "column": 80
+        },
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 78,
+          "column": 10
         }
       ]
     },
@@ -3085,17 +3131,17 @@
       "refs": [
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 45,
+          "line": 90,
           "column": 20
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 46,
+          "line": 91,
           "column": 62
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 69,
+          "line": 115,
           "column": 46
         }
       ]
@@ -3145,7 +3191,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 69,
+          "line": 71,
           "column": 51
         }
       ]
@@ -3157,7 +3203,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 165,
+          "line": 167,
           "column": 32
         }
       ]
@@ -3234,7 +3280,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 553,
+          "line": 577,
           "column": 43
         }
       ]
@@ -3258,7 +3304,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 180,
+          "line": 182,
           "column": 19
         }
       ]
@@ -3424,7 +3470,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 497,
+          "line": 521,
           "column": 21
         }
       ]
@@ -3438,7 +3484,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 76,
+          "line": 78,
           "column": 11
         }
       ]
@@ -3462,7 +3508,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 256,
+          "line": 258,
           "column": 44
         }
       ]
@@ -3545,12 +3591,12 @@
       "refs": [
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 29,
+          "line": 68,
           "column": 80
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 46,
+          "line": 91,
           "column": 129
         }
       ]
@@ -3562,7 +3608,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 156,
+          "line": 158,
           "column": 15
         }
       ]
@@ -3598,7 +3644,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 167,
+          "line": 169,
           "column": 31
         }
       ]
@@ -3685,7 +3731,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 254,
+          "line": 256,
           "column": 41
         }
       ]
@@ -3811,7 +3857,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 189,
+          "line": 191,
           "column": 65
         }
       ]
@@ -3837,7 +3883,7 @@
       "refs": [
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 64,
+          "line": 110,
           "column": 169
         }
       ]
@@ -3954,6 +4000,18 @@
           "file": "features/plugins/PluginResourcePanels.tsx",
           "line": 274,
           "column": 20
+        }
+      ]
+    },
+    "95bb340637d1f0a9": {
+      "source": "可直接粘贴 http://用户名:密码@主机:端口、主机:端口:用户名:密码 或 主机:端口 用户名 密码；保存时会自动识别用户名和密码。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 98,
+          "column": 43
         }
       ]
     },
@@ -4250,6 +4308,21 @@
         }
       ]
     },
+    "a089e5fd6a4bd73c": {
+      "source": "识别为 {address}，用户名 {username}",
+      "kind": "template",
+      "placeholders": [
+        "address",
+        "username"
+      ],
+      "refs": [
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 25,
+          "column": 9
+        }
+      ]
+    },
     "a0ad0c340abf41c7": {
       "source": "缓存读取价格",
       "kind": "text",
@@ -4334,7 +4407,7 @@
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 173,
+          "line": 175,
           "column": 29
         },
         {
@@ -4359,7 +4432,7 @@
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 33,
+          "line": 73,
           "column": 103
         },
         {
@@ -4450,12 +4523,12 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 187,
+          "line": 189,
           "column": 27
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 188,
+          "line": 190,
           "column": 30
         }
       ]
@@ -4479,17 +4552,17 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 236,
+          "line": 238,
           "column": 35
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 63,
+          "line": 109,
           "column": 24
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 75,
+          "line": 121,
           "column": 50
         }
       ]
@@ -4989,17 +5062,17 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 225,
+          "line": 227,
           "column": 33
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 50,
+          "line": 95,
           "column": 22
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 71,
+          "line": 117,
           "column": 48
         }
       ]
@@ -5235,7 +5308,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 194,
+          "line": 196,
           "column": 15
         }
       ]
@@ -5452,12 +5525,12 @@
       "refs": [
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 54,
+          "line": 100,
           "column": 22
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 72,
+          "line": 118,
           "column": 48
         }
       ]
@@ -5530,8 +5603,22 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 65,
+          "line": 67,
           "column": 43
+        }
+      ]
+    },
+    "d483ed2e262ad5b9": {
+      "source": "识别为 {address}",
+      "kind": "template",
+      "placeholders": [
+        "address"
+      ],
+      "refs": [
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 26,
+          "column": 9
         }
       ]
     },
@@ -5751,6 +5838,20 @@
         }
       ]
     },
+    "dcb7a13126db7f53": {
+      "source": "✗ 无法通过此连接访问外网：{error}",
+      "kind": "template",
+      "placeholders": [
+        "error"
+      ],
+      "refs": [
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 23,
+          "column": 46
+        }
+      ]
+    },
     "ddde16f8839da3ce": {
       "source": "总请求",
       "kind": "text",
@@ -5857,7 +5958,7 @@
       "refs": [
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 72,
+          "line": 118,
           "column": 121
         }
       ]
@@ -5869,7 +5970,7 @@
       "refs": [
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 75,
+          "line": 121,
           "column": 123
         }
       ]
@@ -5921,6 +6022,21 @@
           "file": "features/calls/CallDetails.tsx",
           "line": 19,
           "column": 6
+        }
+      ]
+    },
+    "e16e77bafbb3c5c7": {
+      "source": "✗ {host} 无法访问：{error}",
+      "kind": "template",
+      "placeholders": [
+        "host",
+        "error"
+      ],
+      "refs": [
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 29,
+          "column": 66
         }
       ]
     },
@@ -5986,7 +6102,12 @@
         },
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 61,
+          "line": 63,
+          "column": 68
+        },
+        {
+          "file": "features/settings/ProxySettingsCard.tsx",
+          "line": 18,
           "column": 68
         }
       ]
@@ -6176,7 +6297,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 202,
+          "line": 204,
           "column": 24
         }
       ]
@@ -6329,7 +6450,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 262,
+          "line": 264,
           "column": 100
         }
       ]
@@ -6360,7 +6481,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 66,
+          "line": 68,
           "column": 52
         }
       ]
@@ -6526,7 +6647,7 @@
       "refs": [
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 72,
+          "line": 118,
           "column": 132
         }
       ]
@@ -6726,7 +6847,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 264,
+          "line": 266,
           "column": 41
         }
       ]
@@ -6798,7 +6919,7 @@
       "refs": [
         {
           "file": "features/settings/ApiKeySettingsCard.tsx",
-          "line": 173,
+          "line": 175,
           "column": 17
         },
         {
@@ -6818,7 +6939,7 @@
         },
         {
           "file": "features/settings/ProxySettingsCard.tsx",
-          "line": 33,
+          "line": 73,
           "column": 91
         },
         {

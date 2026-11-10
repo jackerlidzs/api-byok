@@ -136,10 +136,34 @@ export interface ProxySettings {
 
 export interface ProxySettingsInput {
   mode: ProxyMode;
+  /** Any of: scheme://user:pass@host:port, host:port:user:pass, user:pass@host:port, host:port user pass. */
   address: string;
   auth_enabled: boolean;
   username: string;
   password?: string;
+}
+
+/** One configured provider server checked through the tested proxy settings. */
+export interface ProxyProviderReach {
+  host: string;
+  /** The provider answered with an HTTP status (any but the proxy's 407). */
+  reachable: boolean;
+  http_status: number | null;
+  duration_ms: number;
+  error: string | null;
+}
+
+export interface ProxyTestResult {
+  /** The proxy as it will be saved (scheme://host:port); empty in default mode. */
+  address: string;
+  /** Includes credentials recognized in the pasted address. */
+  auth_enabled: boolean;
+  username: string;
+  /** Public IP servers see through these settings. */
+  egress_ip: string | null;
+  egress_error: string | null;
+  duration_ms: number;
+  providers: ProxyProviderReach[];
 }
 
 /** How one provider API key reaches the provider: Proxy settings, its own proxy, or directly. */
@@ -581,6 +605,7 @@ export const api = {
   testApiKey: (provider: string, key: ProviderApiKey) => request<ApiKeyTestResult>("/settings/api-keys/test", { method: "POST", body: JSON.stringify({ provider, key }) }),
   proxySettings: () => request<ProxySettings>("/settings/proxy"),
   setProxySettings: (settings: ProxySettingsInput) => request<ProxySettings>("/settings/proxy", { method: "PUT", body: JSON.stringify(settings) }),
+  testProxySettings: (settings: ProxySettingsInput) => request<ProxyTestResult>("/settings/proxy/test", { method: "POST", body: JSON.stringify(settings) }),
   tabSettings: () => request<TabSettings>("/settings/tab"),
   setTabSettings: (settings: TabSettings) => request<TabSettings>("/settings/tab", { method: "PUT", body: JSON.stringify(settings) }),
   desktopSettings: () => request<DesktopSettings>("/settings/desktop"),

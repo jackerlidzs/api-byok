@@ -10,6 +10,8 @@ import type {
   OverviewTokenUsageBucket,
   ProviderApiKey,
   ProxySettings,
+  ProxySettingsInput,
+  ProxyTestResult,
   StatisticsStorage,
   TabSettings,
 } from "../shared/api";
@@ -174,6 +176,7 @@ export function installDemoApi() {
       return json(apiKeySettings);
     }
     if (path === "/settings/proxy" && method === "GET") return json(proxySettings);
+    if (path === "/settings/proxy/test") return json(demoProxyTest(body as ProxySettingsInput));
     if (path === "/settings/proxy") {
       const next = body as Partial<ProxySettings>;
       proxySettings = { ...proxySettings, ...next, has_password: Boolean(next.has_password) };
@@ -319,6 +322,30 @@ function demoKeyTest(provider: string, key: ProviderApiKey): ApiKeyTestResult {
   if (!model) return { ...base, status: "no_model", http_status: null, detail: null, duration_ms: 0 };
   if (key.key.trim().length < 8) return { ...base, status: "rejected", http_status: 401, detail: "invalid x-api-key" };
   return { ...base, status: "ok", http_status: 200, detail: null };
+}
+
+function demoProxyTest(input: ProxySettingsInput): ProxyTestResult {
+  const custom = input.mode === "custom";
+  const providers = Array.from(new Set(models.map((model) => new URL(model.base_url).host))).slice(0, 4);
+  if (custom && !input.address.includes(":")) {
+    return {
+      address: input.address, auth_enabled: input.auth_enabled, username: input.username,
+      egress_ip: null, egress_error: "connection failed: proxy connection refused", duration_ms: 3010,
+      providers: providers.map((host) => ({ host, reachable: false, http_status: null, duration_ms: 3000, error: "connection failed: proxy connection refused" })),
+    };
+  }
+  // The demo reads only host:port and host:port:user:pass; the server reads every format.
+  const [host, port, user] = input.address.replace(/^[a-z0-9]+:\/\//i, "").split(":");
+  const pastedLogin = custom && user !== undefined;
+  return {
+    address: custom ? `http://${host}:${port}` : "",
+    auth_enabled: custom && (input.auth_enabled || pastedLogin),
+    username: pastedLogin ? user : custom && input.auth_enabled ? input.username : "",
+    egress_ip: custom ? "203.0.113.24" : "198.51.100.7",
+    egress_error: null,
+    duration_ms: 640,
+    providers: providers.map((host, index) => ({ host, reachable: true, http_status: index % 2 ? 200 : 404, duration_ms: 180 + index * 70, error: null })),
+  };
 }
 
 function json(value: unknown, status = 200) {

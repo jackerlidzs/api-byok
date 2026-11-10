@@ -157,6 +157,20 @@ pub async fn client(store: &Store) -> Result<reqwest::Client> {
     Ok(client_builder(store).await?.build()?)
 }
 
+/// A client for testing proxy settings before they are saved: through `proxy` with `auth`, or,
+/// when `proxy` is `None`, the way `Default` mode connects (the system proxy, if any).
+pub(crate) fn proxy_test_client(
+    proxy: Option<&str>,
+    auth: Option<(&String, &String)>,
+    timeout: Duration,
+) -> Result<reqwest::Client> {
+    let mut builder = reqwest::Client::builder().use_native_tls().timeout(timeout);
+    if let Some(address) = proxy {
+        builder = builder.proxy(custom_proxy(address, auth)?);
+    }
+    Ok(builder.build()?)
+}
+
 pub async fn blocking_client_builder(store: &Store) -> Result<reqwest::blocking::ClientBuilder> {
     let settings = store.proxy_settings_secret().await?;
     let mut builder = reqwest::blocking::Client::builder().use_native_tls();

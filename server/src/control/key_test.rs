@@ -116,7 +116,7 @@ impl Outcome {
 }
 
 /// The public IP seen by servers reached through `client`.
-async fn egress_ip(client: &reqwest::Client) -> std::result::Result<String, String> {
+pub(super) async fn egress_ip(client: &reqwest::Client) -> std::result::Result<String, String> {
     let response = client
         .get(IP_LOOKUP_URL)
         .send()
@@ -207,7 +207,7 @@ fn classify(status: reqwest::StatusCode) -> KeyTestStatus {
 }
 
 /// A readable reason for a request that got no HTTP response.
-fn transport_error(error: &reqwest::Error) -> String {
+pub(super) fn transport_error(error: &reqwest::Error) -> String {
     let kind = if error.is_timeout() {
         "timed out"
     } else if error.is_connect() {
