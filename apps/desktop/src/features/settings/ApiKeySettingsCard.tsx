@@ -24,31 +24,50 @@ function providerHost(baseUrl: string): string | null {
   }
 }
 
-/** Parses pasted lines of `key`, `key | proxy URL` or `key | direct`. */
-function parseBulkKeys(text: string): { keys: ProviderApiKey[]; invalid: number } {
-  const keys: ProviderApiKey[] = [];
-  let invalid = 0;
+type BulkResult = { added: ProviderApiKey[]; rejected: { line: string; reason: string }[] };
+
+/**
+ * Reads pasted lines of `key`, `key | direct` or `key | proxy`. Keys already in `existing`, or
+ * earlier in the paste, are not added again. Lines that cannot be added come back with the
+ * reason, so they can be fixed instead of disappearing.
+ */
+function parseBulkKeys(text: string, existing: ReadonlySet<string>): BulkResult {
+  const added: ProviderApiKey[] = [];
+  const rejected: BulkResult["rejected"] = [];
+  const seen = new Set(existing);
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
-    const [key = "", proxy = ""] = line.split("|").map((part) => part.trim());
-    if (!key || /\s/.test(key) || key.includes("://")) {
-      invalid += 1;
-      continue;
-    }
-    if (!proxy) {
-      keys.push({ key, enabled: true, proxy: { ...EMPTY_PROXY } });
-    } else if (proxy.toLowerCase() === "direct") {
-      keys.push({ key, enabled: true, proxy: { ...EMPTY_PROXY, mode: "direct" } });
-    } else if (proxy.includes(":")) {
-      // Any proxy format the server reads (host:port:user:pass, user:pass@host:port, ...);
-      // the server validates it on save and moves credentials into the auth fields.
-      keys.push({ key, enabled: true, proxy: { ...EMPTY_PROXY, mode: "custom", address: proxy } });
+    const entry = parseBulkLine(line);
+    if (typeof entry === "string") {
+      rejected.push({ line, reason: entry });
+    } else if (seen.has(entry.key)) {
+      rejected.push({ line, reason: t("this key is already in the list") });
     } else {
-      invalid += 1;
+      seen.add(entry.key);
+      added.push(entry);
     }
   }
-  return { keys, invalid };
+  return { added, rejected };
+}
+
+/**
+ * One pasted line as a key, or the reason it cannot be added. Everything after the first `|` is
+ * the proxy, so a password containing `|` stays whole. The proxy may be in any format Proxy
+ * settings accepts; the server validates it on save and moves credentials into the auth fields.
+ */
+function parseBulkLine(line: string): ProviderApiKey | string {
+  const separator = line.indexOf("|");
+  const key = (separator < 0 ? line : line.slice(0, separator)).trim();
+  const proxy = separator < 0 ? "" : line.slice(separator + 1).trim();
+  if (!key) return t("the key is empty");
+  if (/\s/.test(key)) return t("the key contains spaces; put | between the key and the proxy");
+  if (key.includes("://")) return t("the line starts with a proxy; write the key first: key | proxy");
+  if (!proxy) return { key, enabled: true, proxy: { ...EMPTY_PROXY } };
+  if (proxy.toLowerCase() === "direct") return { key, enabled: true, proxy: { ...EMPTY_PROXY, mode: "direct" } };
+  // Every proxy format the server reads has a ":" or a space (host:port, host port user pass, ...).
+  if (!/[:\s]/.test(proxy)) return t("unknown proxy; leave it empty, write direct, or give an address such as host:port");
+  return { key, enabled: true, proxy: { ...EMPTY_PROXY, mode: "custom", address: proxy } };
 }
 
 type KeyTest = { running: true } | { running: false; result: ApiKeyTestResult } | { running: false; error: string };
@@ -90,6 +109,7 @@ export function ApiKeySettingsCard() {
   const [draft, setDraft] = useState<ApiKeySettings>(EMPTY_SETTINGS);
   const [selectedHost, setSelectedHost] = useState("");
   const [bulkText, setBulkText] = useState("");
+  const [bulkProblems, setBulkProblems] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [tests, setTests] = useState<Record<string, KeyTest>>({});
 
@@ -128,12 +148,14 @@ export function ApiKeySettingsCard() {
     updateKey(index, { proxy: { ...keys[index].proxy, ...patch } });
 
   const addBulk = () => {
-    const { keys: parsed, invalid } = parseBulkKeys(bulkText);
-    const existing = new Set(keys.map((entry) => entry.key.trim()));
-    const fresh = parsed.filter((entry) => !existing.has(entry.key) && existing.add(entry.key));
-    if (fresh.length) setKeys([...keys, ...fresh]);
-    setBulkText("");
-    message(t("Added {added} keys, skipped {skipped} lines", { added: fresh.length, skipped: invalid + parsed.length - fresh.length }));
+    const { added, rejected } = parseBulkKeys(bulkText, new Set(keys.map((entry) => entry.key.trim())));
+    if (added.length) setKeys([...keys, ...added]);
+    // Only the lines that were added leave the box; the rest stay, numbered as they now appear.
+    setBulkText(rejected.map((entry) => entry.line).join("\n"));
+    setBulkProblems(rejected.map((entry, index) => t("Line {line}: {reason}", { line: index + 1, reason: entry.reason })));
+    message(rejected.length
+      ? t("Added {added} keys; {rejected} lines were not added and are still in the box", { added: added.length, rejected: rejected.length })
+      : t("Added {added} keys", { added: added.length }));
   };
 
   const testKey = async (entry: ProviderApiKey) => {
@@ -255,11 +277,18 @@ export function ApiKeySettingsCard() {
         </div>
         <small className={styles.note}>{t("“Test” uses the key and proxy as currently entered (no need to save first), sends one very short request to this provider's first model, and shows the egress IP the provider sees.")}</small>
 
-        <FormField label={t("Bulk add")} hint={t("One key per line, as: key | proxy. Leave the proxy empty (follow proxy settings), write direct (no proxy), or give a proxy address.")}>
+        <FormField label={t("Bulk add")} hint={t("One key per line: key | proxy. Everything after the first | is the proxy: leave it empty to follow Proxy settings, write direct for no proxy, or paste the proxy in any format Proxy settings accepts.")}>
           <textarea className={styles.bulk} rows={4} value={bulkText} disabled={disabled} spellCheck={false}
-            placeholder={"sk-key-1\nsk-key-2 | socks5://user:pass@127.0.0.1:1080\nsk-key-3 | direct"}
-            onChange={(event) => setBulkText(event.target.value)} />
+            placeholder={"sk-key-1\nsk-key-2 | direct\nsk-key-3 | socks5://user:pass@127.0.0.1:1080\nsk-key-4 | host:port:user:pass"}
+            onChange={(event) => {
+              setBulkText(event.target.value);
+              setBulkProblems([]);
+            }} />
         </FormField>
+        {bulkProblems.length > 0 && <div className={styles.testResult}>
+          <small className={styles.testError}>{t("Not added (fix these lines in the box and add again):")}</small>
+          {bulkProblems.map((problem, index) => <small key={index} className={styles.testError}>{problem}</small>)}
+        </div>}
         <div className={styles.addRow}>
           <Button size="small" disabled={disabled || !host || !bulkText.trim()} onClick={addBulk}>{t("Add to list")}</Button>
         </div>
