@@ -111,11 +111,13 @@ impl TabSettings {
     }
 }
 
+/// Language of the built-in commit prompt. The interface is English, so settings that never
+/// chose a language use the English prompt; settings saved with zh-CN keep the Chinese one.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
 pub enum CommitPromptLocale {
-    #[default]
     #[serde(rename = "zh-CN")]
     ZhCn,
+    #[default]
     #[serde(rename = "en-US")]
     EnUs,
 }
@@ -546,6 +548,16 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&CommitPromptLocale::EnUs).unwrap(),
             r#""en-US""#
+        );
+    }
+
+    #[test]
+    fn commit_settings_without_a_locale_use_the_english_prompt() {
+        assert_eq!(CommitPromptLocale::default(), CommitPromptLocale::EnUs);
+        let settings: CommitSettings = serde_json::from_str(r#"{"model_id":"m"}"#).unwrap();
+        assert_eq!(
+            settings.effective_prompt(),
+            DEFAULT_COMMIT_PROMPT_EN_US.trim()
         );
     }
 

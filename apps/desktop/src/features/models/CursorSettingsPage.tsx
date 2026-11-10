@@ -45,7 +45,7 @@ export function CursorSettingsPage() {
   const activeModelTests = useRef(new Map<string, { testId: string; controller: AbortController; cancelling: boolean }>());
   const caReady = cursorHarness?.ca === "ready";
   const cursorTakenOver = cursorHarness?.settings_applied ?? false;
-  const takeoverLabel = cursorTakenOver ? t("关闭接管Cursor") : t("开启接管Cursor");
+  const takeoverLabel = cursorTakenOver ? t("Disable Cursor takeover") : t("Enable Cursor takeover");
   const pluginModels = configuredPluginModels(plugins);
   const testTargets = [
     ...models.map((model) => ({ model_hash: model.model_hash, display_name: model.display_name })),
@@ -133,7 +133,7 @@ export function CursorSettingsPage() {
     try {
       await api.cancelModelTest(modelHash, active.testId);
     } catch (cause) {
-      message(t("取消测试失败：{error}", { error: errorText(cause) }), { duration: 5000 });
+      message(t("Failed to cancel test: {error}", { error: errorText(cause) }), { duration: 5000 });
     }
   };
   const cancelAllModelTests = async () => {
@@ -150,7 +150,7 @@ export function CursorSettingsPage() {
     try {
       const result = await api.testModel(model.model_hash, active.testId, active.controller.signal);
       setModelTestResults((current) => new Map(current).set(model.model_hash, { status: "success", result }));
-      if (notify) message(t("模型 {model} 连通性测试成功（{duration} ms）", { model: model.display_name, duration: result.duration_ms }));
+      if (notify) message(t("Connectivity test for {model} succeeded ({duration} ms)", { model: model.display_name, duration: result.duration_ms }));
       return "success";
     } catch (cause) {
       if (active.cancelling || active.controller.signal.aborted) {
@@ -159,7 +159,7 @@ export function CursorSettingsPage() {
       }
       const error = errorText(cause);
       setModelTestResults((current) => new Map(current).set(model.model_hash, { status: "error", error }));
-      if (notify) message(t("连通性测试失败：{error}", { error }), { duration: 5000 });
+      if (notify) message(t("Connectivity test failed: {error}", { error }), { duration: 5000 });
       return "failure";
     } finally {
       if (activeModelTests.current.get(model.model_hash) === active) activeModelTests.current.delete(model.model_hash);
@@ -194,10 +194,10 @@ export function CursorSettingsPage() {
       const failed = results.filter((result) => result === "failure").length;
       const cancelled = results.filter((result) => result === "cancelled").length;
       message(cancelled > 0
-        ? t("连通性测试已取消：成功 {successful}，失败 {failed}", { successful, failed })
+        ? t("Connectivity test cancelled: {successful} succeeded, {failed} failed", { successful, failed })
         : failed === 0
-          ? t("全部 {count} 个模型连通性测试成功", { count: testTargets.length })
-          : t("连通性测试完成：成功 {successful}，失败 {failed}", { successful, failed }),
+          ? t("Connectivity tests succeeded for all {count} models", { count: testTargets.length })
+          : t("Connectivity tests completed: {successful} succeeded, {failed} failed", { successful, failed }),
       { duration: failed === 0 && cancelled === 0 ? 2400 : 5000 });
     } finally {
       setBatchTesting(false);
@@ -205,7 +205,7 @@ export function CursorSettingsPage() {
   };
   const duplicateModel = async (model: Model) => {
     const names = new Set(models.map((item) => item.display_name));
-    const baseName = t("{name} 副本", { name: model.display_name });
+    const baseName = t("{name} Copy", { name: model.display_name });
     let displayName = baseName;
     let suffix = 2;
     while (names.has(displayName)) {
@@ -217,7 +217,7 @@ export function CursorSettingsPage() {
       sort_order: models.length + 1,
       display_name: displayName,
     }]);
-    if (created) message(t("模型已复制"));
+    if (created) message(t("Model duplicated"));
   };
   const openGroupSettings = (group: CursorModelGroup) => {
     setGroupNameDraft(group.models.find((model) => model.group_name?.trim())?.group_name?.trim() ?? "");
@@ -254,7 +254,7 @@ export function CursorSettingsPage() {
   };
   const reorderModels = useCallback(async (modelHashes: string[]) => {
     if (!await appStore.reorderCursorModels(modelHashes)) {
-      message(appStore.getSnapshot().error || t("排序失败"));
+      message(appStore.getSnapshot().error || t("Unable to save model order"));
     }
   }, [message]);
 
@@ -303,7 +303,7 @@ export function CursorSettingsPage() {
   return <>
     <PageActions position="left">
       <div className={styles.takeoverActions}>
-        <span className={styles.takeoverStatus}>{cursorTakenOver ? t("已接管") : t("未接管")}</span>
+        <span className={styles.takeoverStatus}>{cursorTakenOver ? t("Taken over") : t("Not taken over")}</span>
         <TooltipTrigger label={takeoverLabel}>
           <Switch
             checked={cursorTakenOver}
@@ -315,51 +315,51 @@ export function CursorSettingsPage() {
             }}
           />
         </TooltipTrigger>
-        {testTargets.length > 0 && <div className={styles.groupActions} role="group" aria-label={t("操作")}>
-          <button type="button" aria-pressed={grouping === "flat"} onClick={() => setGrouping("flat")}>{t("默认平铺")}</button>
-          {canGroupByProvider && <button type="button" aria-pressed={grouping === "provider"} onClick={() => setGrouping("provider")}>{t("按供应商")}</button>}
-          {canGroupByType && <button type="button" aria-pressed={grouping === "type"} onClick={() => setGrouping("type")}>{t("按类型")}</button>}
-          <button type="button" disabled={cursorBusy || (!batchTesting && testingModelHashes.size > 0)} onClick={() => void (batchTesting ? cancelAllModelTests() : testAllModels())}>{batchTesting ? t("取消全部测试") : t("一键测试")}</button>
+        {testTargets.length > 0 && <div className={styles.groupActions} role="group" aria-label={t("Actions")}>
+          <button type="button" aria-pressed={grouping === "flat"} onClick={() => setGrouping("flat")}>{t("Default layout")}</button>
+          {canGroupByProvider && <button type="button" aria-pressed={grouping === "provider"} onClick={() => setGrouping("provider")}>{t("By provider")}</button>}
+          {canGroupByType && <button type="button" aria-pressed={grouping === "type"} onClick={() => setGrouping("type")}>{t("By type")}</button>}
+          <button type="button" disabled={cursorBusy || (!batchTesting && testingModelHashes.size > 0)} onClick={() => void (batchTesting ? cancelAllModelTests() : testAllModels())}>{batchTesting ? t("Cancel all tests") : t("Test all")}</button>
         </div>}
       </div>
     </PageActions>
-    <PageActions><TooltipTrigger label={caReady ? t("添加模型") : t("请先初始化 CA")}><button className={controls.iconButton} aria-label={t("添加模型")} disabled={!caReady || cursorBusy} onClick={openNew}><Icon icon={addIcon} size="1.1em" /></button></TooltipTrigger></PageActions>
+    <PageActions><TooltipTrigger label={caReady ? t("Add model") : t("Initialize the CA first")}><button className={controls.iconButton} aria-label={t("Add model")} disabled={!caReady || cursorBusy} onClick={openNew}><Icon icon={addIcon} size="1.1em" /></button></TooltipTrigger></PageActions>
     <PageContent title="Cursor" sections={[{ key: "cursor-settings", estimatedHeight: estimatedModelHeight, content }]} />
     <ConfirmDialog
       open={confirmDisableTakeover}
-      title={t("关闭接管Cursor？")}
-      cancelLabel={t("取消")}
-      confirmLabel={t("关闭接管")}
+      title={t("Disable Cursor takeover?")}
+      cancelLabel={t("Cancel")}
+      confirmLabel={t("Disable takeover")}
       onCancel={() => setConfirmDisableTakeover(false)}
       onConfirm={() => {
         setConfirmDisableTakeover(false);
         void appStore.setCursorEnabled(false);
       }}
     >
-      <p>{t("关闭后将移除 Cursor 本地代理配置。如果你需要登陆官方账号，通常不需要关闭操作，推荐直接登陆你的账号即可(byok模型与官方账号的模型已支持无缝衔接)，是否继续关闭并清理代理？")}</p>
+      <p>{t("Disabling this will remove Cursor's local proxy configuration. If you need to sign in to an official account, you usually do not need to disable it. You can sign in directly because BYOK models and official-account models now work together seamlessly. Do you want to continue disabling and clearing the proxy configuration?")}</p>
     </ConfirmDialog>
-    <Modal fullHeight open={draft !== null} title={editing ? t("编辑模型") : t("添加模型")} banner={draft && (editorTesting || editorTestState) ? <CursorModelTestResult state={editorTestState} testing={editorTesting} /> : undefined} busy={cursorBusy || savingAndTesting} onClose={() => { if (editing && editorTesting) void cancelModelTest(editing.model_hash); setDraft(null); setEditing(null); }} onSubmit={() => void save()} submitLabel={t("保存")} secondaryAction={<button type="button" className={controls.secondary} disabled={cursorBusy || savingAndTesting} onClick={() => void (editorTesting && editing ? cancelModelTest(editing.model_hash) : saveAndTest())}>{savingAndTesting ? t("处理中…") : editorTesting ? t("取消测试") : t("保存并测试")}</button>}>
+    <Modal fullHeight open={draft !== null} title={editing ? t("Edit model") : t("Add model")} banner={draft && (editorTesting || editorTestState) ? <CursorModelTestResult state={editorTestState} testing={editorTesting} /> : undefined} busy={cursorBusy || savingAndTesting} onClose={() => { if (editing && editorTesting) void cancelModelTest(editing.model_hash); setDraft(null); setEditing(null); }} onSubmit={() => void save()} submitLabel={t("Save")} secondaryAction={<button type="button" className={controls.secondary} disabled={cursorBusy || savingAndTesting} onClick={() => void (editorTesting && editing ? cancelModelTest(editing.model_hash) : saveAndTest())}>{savingAndTesting ? t("Processing…") : editorTesting ? t("Cancel test") : t("Save and test")}</button>}>
       {draft && <>
         <CursorModelEditor draft={draft} modelOptions={modelOptions} discovering={discovering} onChange={setDraft} onDiscover={discover} />
       </>}
     </Modal>
-    <ConfirmDialog open={caCommand !== null} title={t("安装本地 CA")} cancelLabel={t("关闭")} confirmLabel={t("打开终端")} onCancel={() => setCaCommand(null)} onConfirm={openCaTerminal}>
-      <div className={styles.editor}><strong>{t("需要授权安装证书")}</strong><span>{t("安装命令已自动复制。点击“打开终端”，将命令粘贴到终端中执行，并按提示输入密码。")}</span><pre className={styles.command}>{caCommand}</pre></div>
+    <ConfirmDialog open={caCommand !== null} title={t("Install local CA")} cancelLabel={t("Close")} confirmLabel={t("Open terminal")} onCancel={() => setCaCommand(null)} onConfirm={openCaTerminal}>
+      <div className={styles.editor}><strong>{t("Authorization is required to install the certificate")}</strong><span>{t("The install command has been copied. Click “Open terminal”, paste it into the terminal, and enter your password when prompted.")}</span><pre className={styles.command}>{caCommand}</pre></div>
     </ConfirmDialog>
-    <Modal open={settingsGroup !== null} title={t("分组设置")} busy={groupSettingsBusy || cursorBusy} onClose={() => setSettingsGroup(null)} onSubmit={() => void saveGroupSettings()} submitLabel={t("保存")}>
+    <Modal open={settingsGroup !== null} title={t("Group settings")} busy={groupSettingsBusy || cursorBusy} onClose={() => setSettingsGroup(null)} onSubmit={() => void saveGroupSettings()} submitLabel={t("Save")}>
       {settingsGroup && <div className={styles.editor}>
-        <FormField label={t("分组名称")} hint={t("应用于该分组下的全部模型，并作为 Cursor 模型选择器中的徽章标签；清空则恢复显示服务器域名。")}>
+        <FormField label={t("Group name")} hint={t("Applies to every model in this group and is used as the badge label in Cursor's model picker; clear it to fall back to the server domain.")}>
           <TextInput placeholder={settingsGroup.key} value={groupNameDraft} onChange={(event) => setGroupNameDraft(event.target.value)} />
         </FormField>
-        <FormField label={t("服务器地址")} hint={t("修改后应用于该分组下的全部模型；留空保持各模型现有配置不变。")}>
-          <TextInput placeholder={t("留空保持不变")} value={groupBaseUrlDraft} onChange={(event) => setGroupBaseUrlDraft(event.target.value)} />
+        <FormField label={t("Server address")} hint={t("Applies to every model in this group when changed; leave blank to keep each model's current configuration.")}>
+          <TextInput placeholder={t("Leave blank to keep unchanged")} value={groupBaseUrlDraft} onChange={(event) => setGroupBaseUrlDraft(event.target.value)} />
         </FormField>
-        <FormField label="API Key" hint={t("修改后应用于该分组下的全部模型；留空保持各模型现有配置不变。")}>
-          <SecretTextInput placeholder={t("留空保持不变")} autoComplete="off" value={groupApiKeyDraft} onChange={(event) => setGroupApiKeyDraft(event.target.value)} />
+        <FormField label="API Key" hint={t("Applies to every model in this group when changed; leave blank to keep each model's current configuration.")}>
+          <SecretTextInput placeholder={t("Leave blank to keep unchanged")} autoComplete="off" value={groupApiKeyDraft} onChange={(event) => setGroupApiKeyDraft(event.target.value)} />
         </FormField>
       </div>}
     </Modal>
-    <ConfirmDialog open={deleting !== null} title={t("删除模型")} cancelLabel={t("取消")} confirmLabel={t("删除")} onCancel={() => setDeleting(null)} onConfirm={() => { if (deleting) void appStore.deleteModel(deleting.model_hash); setDeleting(null); }}><p>{t("确定删除这个模型吗？")}</p></ConfirmDialog>
+    <ConfirmDialog open={deleting !== null} title={t("Delete model")} cancelLabel={t("Cancel")} confirmLabel={t("Delete")} onCancel={() => setDeleting(null)} onConfirm={() => { if (deleting) void appStore.deleteModel(deleting.model_hash); setDeleting(null); }}><p>{t("Delete this model?")}</p></ConfirmDialog>
   </>;
 }
 
@@ -368,7 +368,7 @@ function modelInput(model: Model): ModelInput {
   return input;
 }
 
-/** 组内所有模型取值一致时返回该值,否则返回 null(表单留空表示保持不变)。 */
+/** The value shared by every model in the group, or null (an empty field keeps each model's value). */
 function sharedValue(values: string[]): string | null {
   const [first, ...rest] = values;
   if (first === undefined) return null;
@@ -383,27 +383,27 @@ function draftInput(draft: CursorModelDraft): ModelInput {
     api_key: draft.model.api_key.trim(),
     tooltip_data: draft.model.tooltip_data.trim(),
     model_id: draft.model.model_id.trim(),
-    openai_extra_params: parseObject(draft.openAIExtraParamsText, t("OpenAI 额外参数")),
+    openai_extra_params: parseObject(draft.openAIExtraParamsText, t("OpenAI extra parameters")),
     custom_headers: parseHeaders(draft.customHeadersText),
-    anthropic_extra_params: parseObject(draft.anthropicExtraParamsText, t("Anthropic 额外参数")),
+    anthropic_extra_params: parseObject(draft.anthropicExtraParamsText, t("Anthropic extra parameters")),
   };
-  if (!model.display_name || !model.base_url || !model.api_key || !model.tooltip_data || !model.model_id) throw new Error(t("服务器地址或完整请求 URL、API Key、模型名称、显示名称和备注不能为空"));
-  for (const [label, value] of [[t("上下文窗口 Token"), model.context_window_tokens], [t("最大输出 Token"), model.type === "openai" ? model.max_completion_tokens : model.anthropic_max_tokens], [t("思考预算 Token"), model.thinking_budget_tokens]] as const) {
-    if (value !== null && (!Number.isSafeInteger(value) || value <= 0)) throw new Error(t("{label} 必须是大于 0 的整数", { label }));
+  if (!model.display_name || !model.base_url || !model.api_key || !model.tooltip_data || !model.model_id) throw new Error(t("Server address or complete request URL, API Key, model name, display name, and note are required"));
+  for (const [label, value] of [[t("Context window tokens"), model.context_window_tokens], [t("Maximum output tokens"), model.type === "openai" ? model.max_completion_tokens : model.anthropic_max_tokens], [t("Thinking budget tokens"), model.thinking_budget_tokens]] as const) {
+    if (value !== null && (!Number.isSafeInteger(value) || value <= 0)) throw new Error(t("{label} must be an integer greater than 0", { label }));
   }
   return model;
 }
 
 function parseHeaders(text: string): Record<string, string> {
-  const parsed = parseObject(text, t("自定义 Headers"));
-  if (Object.values(parsed).some((value) => typeof value !== "string")) throw new Error(t("自定义 Headers 的值必须都是字符串"));
+  const parsed = parseObject(text, t("Custom Headers"));
+  if (Object.values(parsed).some((value) => typeof value !== "string")) throw new Error(t("All custom Header values must be strings"));
   return parsed as Record<string, string>;
 }
 
 function parseObject(text: string, label: string): Record<string, unknown> {
   let parsed: unknown;
-  try { parsed = JSON.parse(text || "{}"); } catch { throw new Error(t("{label} 必须是有效 JSON", { label })); }
-  if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error(t("{label} 必须是 JSON 对象", { label }));
+  try { parsed = JSON.parse(text || "{}"); } catch { throw new Error(t("{label} must be valid JSON", { label })); }
+  if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error(t("{label} must be a JSON object", { label }));
   return parsed as Record<string, unknown>;
 }
 

@@ -221,7 +221,7 @@ function createModel({ hash, order, name, type, url, modelId, endpoint = "/v1/re
     base_url: url,
     use_full_url: false,
     api_key: "demo-key",
-    tooltip_data: `${name} Mock 通道`,
+    tooltip_data: `${name} mock channel`,
     model_id: modelId,
     reasoning_effort: type === "openai" ? "high" : null,
     openai_endpoint: type === "openai" ? endpoint : "",
@@ -279,7 +279,7 @@ function createSeries(count: number, step: number, end: number): OverviewTokenUs
     const wave = 0.72 + ((index * 17) % 31) / 50;
     return {
       bucket_start_ms: end - (count - index) * step,
-      // input : cache_read = 1 : 99，使默认口径缓存命中率恰为 99%
+      // input : cache_read = 1 : 99, so the default cache hit rate is exactly 99%
       input_tokens: Math.round(800 * wave),
       cache_read_tokens: Math.round(79_200 * wave),
       cache_write_tokens: Math.round(7_500 * wave),

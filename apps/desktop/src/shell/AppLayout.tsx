@@ -43,14 +43,14 @@ export function AppLayout() {
     }
   });
   const menuItems: MenuItem[] = [
-    { kind: "page", path: "/", label: t("数据概览"), icon: flatColorAreaChartIcon },
-    { kind: "page", path: "/calls", label: t("调用详细"), icon: flatColorSalesPerformanceIcon },
-    { kind: "group", label: t("模型配置") },
+    { kind: "page", path: "/", label: t("Overview"), icon: flatColorAreaChartIcon },
+    { kind: "page", path: "/calls", label: t("Call history"), icon: flatColorSalesPerformanceIcon },
+    { kind: "group", label: t("Models") },
     { kind: "page", path: "/harness/cursor", label: "Cursor", icon: cursorIconUrl },
-    { kind: "group", label: t("设置") },
-    { kind: "page", path: "/plugins", label: t("插件配置"), icon: flatColorCrystalOscillatorIcon },
-    { kind: "page", path: "/settings", label: t("系统设置"), icon: flatColorSettingsIcon },
-    { kind: "external", id: "tutorial", label: t("使用教程"), icon: flatColorAboutIcon },
+    { kind: "group", label: t("Settings") },
+    { kind: "page", path: "/plugins", label: t("Plugins"), icon: flatColorCrystalOscillatorIcon },
+    { kind: "page", path: "/settings", label: t("System settings"), icon: flatColorSettingsIcon },
+    { kind: "external", id: "tutorial", label: t("User guide"), icon: flatColorAboutIcon },
   ];
 
   const openTutorial = useCallback(() => {
@@ -69,7 +69,7 @@ export function AppLayout() {
 
   return <PageLayout className={styles.root}>
     <Card as="aside" className={styles.menuCard}>
-      <nav className={styles.navigation} aria-label={t("主菜单")}>
+      <nav className={styles.navigation} aria-label={t("Main menu")}>
         <VirtualList
           items={menuItems}
           itemKey={(item) => item.kind === "group" ? `group-${item.label}` : item.kind === "external" ? `external-${item.id}` : item.path}
@@ -83,7 +83,7 @@ export function AppLayout() {
           ? <div className={styles.navigationRow} key={item.id}>
             <button
               type="button"
-              aria-label={`${item.label}${tutorialRead ? "" : `，${t("未读")}`}`}
+              aria-label={`${item.label}${tutorialRead ? "" : `, ${t("Unread")}`}`}
               onClick={() => setConfirmTutorial(true)}
             >
               {typeof item.icon === "string"
@@ -103,7 +103,7 @@ export function AppLayout() {
                 className={styles.menuStatusTag}
                 data-taken={cursorHarness.settings_applied || undefined}
               >
-                {cursorHarness.settings_applied ? t("已接管") : t("未接管")}
+                {cursorHarness.settings_applied ? t("Taken over") : t("Not taken over")}
               </span>}
               {item.path === "/settings" && availableVersion && <span className={styles.menuIndicatorDot} aria-hidden="true" />}
             </NavLink>
@@ -114,19 +114,19 @@ export function AppLayout() {
     <ConfirmDialog
       id="open-tutorial-dialog"
       open={confirmTutorial}
-      title={t("打开使用教程？")}
-      cancelLabel={t("取消")}
-      confirmLabel={t("打开教程")}
+      title={t("Open the tutorial?")}
+      cancelLabel={t("Cancel")}
+      confirmLabel={t("Open tutorial")}
       onCancel={() => setConfirmTutorial(false)}
       onConfirm={openTutorial}
     >
-      <p>{t("将在系统浏览器中打开使用教程，是否继续？")}</p>
+      <p>{t("This will open the tutorial in your system browser. Continue?")}</p>
     </ConfirmDialog>
     <main className={styles.content}>
       <div className={styles.actionRegion}>
         <Card className={styles.actions}>
           <div ref={setLeftActionTarget} className={styles.pageActions} />
-          {location.pathname !== "/" && <TooltipTrigger label={t("刷新")}><button className={controls.iconButton} aria-label={t("刷新")} disabled={busy} onClick={() => void appStore.refresh()}>
+          {location.pathname !== "/" && <TooltipTrigger label={t("Refresh")}><button className={controls.iconButton} aria-label={t("Refresh")} disabled={busy} onClick={() => void appStore.refresh()}>
             <Icon className={busy ? controls.spin : ""} icon={refreshIcon} size="1.1em" />
           </button></TooltipTrigger>}
           <div ref={setRightActionTarget} className={styles.pageActions} />

@@ -1,48 +1,34 @@
 ---
 name: i18n
-description: Implement and review Cursor BYOK desktop localization, including t() usage, locale catalogs, system-language selection, translation completeness, and language settings under apps/desktop.
+description: Write and review user-facing text in the Cursor BYOK desktop app (apps/desktop), including t() usage, placeholders, and the English-only text check.
 ---
 
-# Desktop i18n
+# Desktop text
 
-Keep localization organized as:
+The desktop interface is English only. There are no locale catalogs and no language setting.
 
 ```text
 apps/desktop/
-├── plugins/static-i18n-plugin.ts
+├── plugins/static-i18n-plugin.ts   # checks every t() call at build time
 └── src/i18n/
-    ├── I18nRoot.tsx
-    ├── runtime.ts
-    ├── store.ts
-    ├── generated/catalog.json
-    └── locales/
-        ├── zh-CN.json
-        └── en-US.json
+    ├── runtime.ts                  # t(): fills {placeholders}
+    └── global.d.ts                 # declares the global t
 ```
 
 ## Author messages
 
-- Use the global `t()` function with a static Simplified Chinese string literal: `t("保存")`.
+- Use the global `t()` function with a static English string literal: `t("Save")`.
 - Do not import or locally declare `t`.
-- Keep calls inside render paths when the result must update after a language change. Do not translate module-level UI constants.
-- Use named placeholders with a static object: `t("第 {page} 页", { page })`.
-- Preserve every placeholder name exactly in all translations.
-- Wrap all user-visible labels, descriptions, tooltips, empty states, validation messages, and accessibility labels. Do not wrap protocol tokens, model IDs, URLs, or product names that should remain unchanged.
+- Use named placeholders with a static object: `t("Page {page}", { page })`.
+- Wrap all user-visible labels, descriptions, tooltips, empty states, validation messages, and accessibility labels, so every interface string stays easy to find. Do not wrap protocol tokens, model IDs, URLs, or product names.
+- Use ASCII punctuation (`:`, `,`, `(`), not full-width forms.
 
-## Locale behavior
+## Build check
 
-- `system` is the default preference.
-- Resolve supported operating-system languages to their locale and fall back to `en-US` for every unsupported language.
-- Persist only explicit locale selections. Removing the preference restores system-language behavior.
-- Apply changes immediately and update the document `lang` attribute.
+From `apps/desktop`, run `npm run check`. The build fails when a `t()` call:
 
-## Update catalogs
+- has text that is not a static string literal,
+- contains Chinese characters (text merged from upstream must be translated first),
+- has placeholders that do not match its params object.
 
-From `apps/desktop`:
-
-1. Run `npm run i18n:scan` after adding or changing `t()` sources.
-2. Translate every empty entry in `src/i18n/locales/en-US.json`.
-3. Never edit `src/i18n/generated/catalog.json` or `zh-CN.json` manually; scanning owns them.
-4. Run `npm run check`. A normal build must fail on a missing translation or mismatched placeholder.
-
-When adding another locale, add it to the plugin's supported locales, runtime locale type and messages, locale resolver, settings options, and provide a complete locale JSON file.
+Plugin display text (`PluginLocalizedText`) may still be a locale map; read it with `pluginText(value, LOCALE)`.

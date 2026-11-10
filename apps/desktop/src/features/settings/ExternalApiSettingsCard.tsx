@@ -26,7 +26,7 @@ export function ExternalApiSettingsCard({ servicePort }: { servicePort: number }
       const settings = await api.setExternalApiSettings(draft);
       setSaved(settings);
       setDraft(settings);
-      message(t("外部 API 设置已保存"));
+      message(t("External API settings saved"));
     } catch (cause) {
       message(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -37,24 +37,24 @@ export function ExternalApiSettingsCard({ servicePort }: { servicePort: number }
   const address = `http://127.0.0.1:${servicePort}/byok/v1`;
   const changed = saved && (saved.enabled !== draft.enabled || saved.api_key !== draft.api_key);
 
-  return <TitledCard title={t("外部 API")} action={<Button size="small" variant="primary" disabled={!changed || saving} onClick={() => void save()}>
-    {saving ? t("保存中…") : t("保存")}
+  return <TitledCard title={t("External API")} action={<Button size="small" variant="primary" disabled={!changed || saving} onClick={() => void save()}>
+    {saving ? t("Saving…") : t("Save")}
   </Button>}>
     <div className={styles.content}>
       <div className={styles.row}>
         <div className={styles.description}>
-          <strong>{t("开启外部 API")}</strong>
-          <small>{t("允许本机应用使用密钥调用已配置的模型，包括插件模型。")}</small>
+          <strong>{t("Enable external API")}</strong>
+          <small>{t("Allow local apps to call configured models, including plugin models, with an API key.")}</small>
         </div>
-        <Switch label={t("开启外部 API")} checked={draft.enabled} disabled={!saved || saving}
+        <Switch label={t("Enable external API")} checked={draft.enabled} disabled={!saved || saving}
           onChange={(enabled) => setDraft((current) => ({ ...current, enabled }))} />
       </div>
-      <FormField label={t("API 密钥")} hint={t("开启后，所有外部请求都必须提供此密钥。")}> 
+      <FormField label={t("API key")} hint={t("All external requests must provide this key when enabled.")}> 
         <SecretTextInput value={draft.api_key} autoComplete="off" disabled={!saved || saving}
           onChange={(event) => setDraft((current) => ({ ...current, api_key: event.target.value }))} />
       </FormField>
       <div className={styles.address}>
-        <strong>{t("基础地址")}</strong>
+        <strong>{t("Base URL")}</strong>
         <code>{address}</code>
       </div>
     </div>

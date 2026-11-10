@@ -245,7 +245,7 @@ export interface PluginRuntimeStatus {
   error: string | null;
 }
 
-/** 插件提供的显示文本:纯字符串或 locale → 文本映射。 */
+/** Display text from a plugin: a plain string or a locale → text map. */
 export type PluginLocalizedText = string | Record<string, string>;
 
 export function pluginText(value: PluginLocalizedText | null | undefined, locale: string): string {
@@ -518,7 +518,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: init?.body ? { "content-type": "application/json", ...init.headers } : init?.headers,
     });
   } catch (cause) {
-    throw new Error(t("无法连接本地管理服务"), { cause });
+    throw new Error(t("Unable to connect to the local management service"), { cause });
   }
   if (!response.ok) {
     const body = await response.text();
@@ -574,12 +574,12 @@ export const api = {
   initializePluginRuntime: () => request<PluginRuntimeStatus>("/plugins/runtime", { method: "POST" }),
   cancelPluginRuntimeInitialization: () => request<PluginRuntimeStatus>("/plugins/runtime", { method: "DELETE" }),
   openCursorCaInstallTerminal: async (command: string) => {
-    if (!packagedDesktop) throw new Error(t("请在桌面应用中打开终端安装 CA"));
+    if (!packagedDesktop) throw new Error(t("Open a terminal from the desktop app to install the CA"));
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("open_terminal_with_command", { command });
   },
   copyCursorText: async (text: string) => {
-    if (!packagedDesktop) throw new Error(t("请在桌面应用中复制到系统剪贴板"));
+    if (!packagedDesktop) throw new Error(t("Use the desktop app to copy to the system clipboard"));
     const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
     await writeText(text);
   },

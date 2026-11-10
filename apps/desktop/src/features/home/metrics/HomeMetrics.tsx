@@ -23,7 +23,7 @@ function formatMetricValue(value: number) {
 }
 
 function formatRate(value: number | null) {
-  return value === null ? t("暂无数据") : `${(Math.max(0, Math.min(1, value)) * 100).toFixed(2)}%`;
+  return value === null ? t("No data") : `${(Math.max(0, Math.min(1, value)) * 100).toFixed(2)}%`;
 }
 
 function calculateRate(numerator: number, denominator: number) {
@@ -51,7 +51,7 @@ function InfoTooltip({ content }: { content: string }) {
   return <button
     type="button"
     className={styles.info}
-    aria-label={t("查看说明")}
+    aria-label={t("View instructions")}
     onMouseEnter={(event) => show(elementAnchor(event.currentTarget), undefined, <div className={styles.tooltipText}>{content}</div>)}
     onMouseLeave={hide}
     onFocus={(event) => show(elementAnchor(event.currentTarget), undefined, <div className={styles.tooltipText}>{content}</div>)}
@@ -78,89 +78,89 @@ export function HomeMetrics({ data, refreshVersion = 0 }: { data: HomeMetricsDat
   const totalCost = costs.input + costs.output + costs.cacheRead + costs.cacheWrite;
   const cacheCost = costs.cacheRead + costs.cacheWrite;
   const cacheTooltip = [
-    t("当前：{rate}", { rate: formatRate(defaultCacheHitRate) }),
-    t("公式：缓存读取 /（缓存读取 + 非缓存输入）"),
-    t("默认 {defaultRate} / 计入创建 {reuseRate}", {
+    t("Current: {rate}", { rate: formatRate(defaultCacheHitRate) }),
+    t("Formula: cache read / (cache read + non-cached input)"),
+    t("Default {defaultRate} / include creation {reuseRate}", {
       defaultRate: formatRate(defaultCacheHitRate),
       reuseRate: formatRate(cacheReuseRate),
     }),
   ].join("\n");
   const callsTooltip = [
-    t("按历史 LLM 调用记录汇总，进行中的调用不计入。"),
+    t("Aggregated from historical LLM calls; in-progress calls are excluded."),
     "",
-    t("总调用：{count}", { count: formatMetricValue(data.llmCalls) }),
-    t("成功调用：{count}", { count: formatMetricValue(data.successfulCalls) }),
-    t("异常调用：{count}", { count: formatMetricValue(data.failedCalls) }),
-    t("成功占比：{rate}", { rate: formatRate(successfulCallRate) }),
+    t("Total calls: {count}", { count: formatMetricValue(data.llmCalls) }),
+    t("Successful calls: {count}", { count: formatMetricValue(data.successfulCalls) }),
+    t("Failed calls: {count}", { count: formatMetricValue(data.failedCalls) }),
+    t("Success rate: {rate}", { rate: formatRate(successfulCallRate) }),
   ].join("\n");
   const tokensTooltip = [
-    t("总请求 Token 包含提示词和模型输出。"),
+    t("Total request Tokens include the prompt and model output."),
     "",
-    t("总请求：{tokens}", { tokens: formatMetricValue(data.tokenUsage) }),
-    t("提示词：{tokens}", { tokens: formatMetricValue(data.promptTokens) }),
-    t("输出推算：{tokens}", { tokens: formatMetricValue(outputTokens) }),
-    t("非缓存输入：{tokens}", { tokens: formatMetricValue(inputTokens) }),
-    t("缓存读取：{tokens}", { tokens: formatMetricValue(data.cacheReadTokens) }),
-    t("缓存写入：{tokens}", { tokens: formatMetricValue(data.cacheWriteTokens) }),
+    t("Total requests: {tokens}", { tokens: formatMetricValue(data.tokenUsage) }),
+    t("Prompt: {tokens}", { tokens: formatMetricValue(data.promptTokens) }),
+    t("Estimated output: {tokens}", { tokens: formatMetricValue(outputTokens) }),
+    t("Non-cached input: {tokens}", { tokens: formatMetricValue(inputTokens) }),
+    t("Cache read: {tokens}", { tokens: formatMetricValue(data.cacheReadTokens) }),
+    t("Cache write: {tokens}", { tokens: formatMetricValue(data.cacheWriteTokens) }),
     "",
-    t("缓存读写已计入提示词侧统计。"),
+    t("Cache reads and writes are included in prompt-side statistics."),
   ].join("\n");
   const costTooltip = [
-    t("按配置的 Token 价格估算。"),
-    t("缓存统计策略：默认口径（{rate}）", { rate: formatRate(defaultCacheHitRate) }),
+    t("Estimated using configured token pricing."),
+    t("Cache statistics policy: default ({rate})", { rate: formatRate(defaultCacheHitRate) }),
     "",
-    t("普通输入：{tokens} × ${price}/1M = {cost}", {
+    t("Regular input: {tokens} × ${price}/1M = {cost}", {
       tokens: formatMetricValue(inputTokens),
       price: pricing.input_per_million,
       cost: formatUSD(costs.input),
     }),
-    t("模型输出：{tokens} × ${price}/1M = {cost}", {
+    t("Model output: {tokens} × ${price}/1M = {cost}", {
       tokens: formatMetricValue(outputTokens),
       price: pricing.output_per_million,
       cost: formatUSD(costs.output),
     }),
-    t("缓存读取：{tokens} × ${price}/1M = {cost}", {
+    t("Cache read: {tokens} × ${price}/1M = {cost}", {
       tokens: formatMetricValue(data.cacheReadTokens),
       price: pricing.cache_read_per_million,
       cost: formatUSD(costs.cacheRead),
     }),
-    t("缓存写入：{tokens} × ${price}/1M = {cost}", {
+    t("Cache write: {tokens} × ${price}/1M = {cost}", {
       tokens: formatMetricValue(data.cacheWriteTokens),
       price: pricing.cache_write_per_million,
       cost: formatUSD(costs.cacheWrite),
     }),
     "",
-    t("合计：{cost}", { cost: formatUSD(totalCost) }),
+    t("Total: {cost}", { cost: formatUSD(totalCost) }),
   ].join("\n");
 
   return <div className={styles.scroller}>
-    <section className={styles.root} aria-label={t("调用统计")}>
+    <section className={styles.root} aria-label={t("Call statistics")}>
       <article className={styles.metric}>
-        <div className={styles.label}>{t("缓存命中率")}<InfoTooltip content={cacheTooltip} /></div>
+        <div className={styles.label}>{t("Cache hit rate")}<InfoTooltip content={cacheTooltip} /></div>
         <CacheHitRateChart rate={defaultCacheHitRate ?? 0} animationKey={refreshVersion} />
       </article>
       <article className={styles.metric}>
-        <div className={styles.label}>{t("LLM 调用")}<InfoTooltip content={callsTooltip} /></div>
+        <div className={styles.label}>{t("LLM calls")}<InfoTooltip content={callsTooltip} /></div>
         <div className={styles.body}>
           <div className={styles.value} title={formatInteger(data.llmCalls)}>{formatCompactInteger(data.llmCalls)}</div>
-          <div className={styles.secondary}>{t("成功 {successful} / 异常 {failed}", {
+          <div className={styles.secondary}>{t("Successful {successful} / failed {failed}", {
             successful: formatCompactInteger(data.successfulCalls),
             failed: formatCompactInteger(data.failedCalls),
           })}</div>
         </div>
       </article>
       <article className={styles.metric}>
-        <div className={styles.label}>{t("Token 消耗")}<InfoTooltip content={tokensTooltip} /></div>
+        <div className={styles.label}>{t("Token usage")}<InfoTooltip content={tokensTooltip} /></div>
         <div className={styles.body}>
           <div className={styles.value} title={formatInteger(data.tokenUsage)}>{formatCompactInteger(data.tokenUsage)}</div>
-          <div className={styles.secondary}>{t("提示词 {tokens}", { tokens: formatCompactInteger(data.promptTokens) })}</div>
+          <div className={styles.secondary}>{t("Prompt {tokens}", { tokens: formatCompactInteger(data.promptTokens) })}</div>
         </div>
       </article>
       <article className={styles.metric}>
-        <div className={styles.label}>{t("价值估算")}<InfoTooltip content={costTooltip} /></div>
+        <div className={styles.label}>{t("Estimated value")}<InfoTooltip content={costTooltip} /></div>
         <div className={styles.body}>
           <div className={styles.value} title={formatUSD(totalCost)}>{formatUSD(totalCost)}</div>
-          <div className={styles.secondary}>{t("缓存读写 {cost}", { cost: formatUSD(cacheCost) })}</div>
+          <div className={styles.secondary}>{t("Cache I/O {cost}", { cost: formatUSD(cacheCost) })}</div>
         </div>
       </article>
     </section>

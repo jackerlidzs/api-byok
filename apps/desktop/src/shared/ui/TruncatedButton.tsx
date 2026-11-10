@@ -4,9 +4,9 @@ import { TooltipTrigger } from "./TooltipTrigger";
 import styles from "./TruncatedButton.module.scss";
 
 /**
- * 文本被省略号截断时才显示完整文案悬浮提示的按钮。
- * 按钮是 flex 容器,省略号只作用在内层文本 span 上;
- * 截断在悬停/聚焦时现测——挂载时字体可能未加载,提前测会得到错误结果。
+ * A button that shows its full text in a tooltip only when the text is truncated.
+ * The button is a flex container, so the ellipsis applies to the inner text span;
+ * truncation is measured on hover/focus because fonts may not be loaded at mount time.
  */
 export function TruncatedButton({ label, ...props }: ComponentProps<typeof Button> & { label: string }) {
   const element = useRef<HTMLSpanElement>(null);
