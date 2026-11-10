@@ -46,6 +46,7 @@ where
             sent => sent?,
         };
         let status = response.status();
+        keys::record(route, status);
         if has_next && keys::rejected(status) {
             tracing::warn!(
                 label,
@@ -95,6 +96,7 @@ mod tests {
         KeyRoute {
             key: key.to_owned(),
             client: client.clone(),
+            pool: None,
         }
     }
 

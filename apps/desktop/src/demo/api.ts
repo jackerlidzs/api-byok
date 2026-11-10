@@ -93,7 +93,7 @@ let harnessStatus: CursorHarnessStatus = {
 let detailed = true;
 let portSettings = { proxy_port: 0, service_port: 0 };
 let externalApiSettings: ExternalApiSettings = { enabled: false, api_key: "" };
-let apiKeySettings: ApiKeySettings = { enabled: false, providers: {} };
+let apiKeySettings: ApiKeySettings = { enabled: false, order: "round_robin", providers: {} };
 let proxySettings: ProxySettings = {
   mode: "default",
   address: "",

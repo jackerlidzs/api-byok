@@ -258,6 +258,7 @@ async fn send_with_keys(
             }
             sent => sent?,
         };
+        keys::record(route, response.status());
         if has_next && keys::rejected(response.status()) {
             tracing::warn!(
                 key_index = index + 1,

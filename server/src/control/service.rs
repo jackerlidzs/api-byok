@@ -651,6 +651,8 @@ impl ControlService {
         }
         let settings = self.store.set_api_key_settings(settings).await?;
         self.clients.invalidate().await;
+        // Saved keys start fresh: a key topped up or replaced is not left resting.
+        crate::provider::keys::reset();
         Ok(settings)
     }
 

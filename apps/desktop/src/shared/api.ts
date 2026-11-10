@@ -183,8 +183,12 @@ export interface ProviderApiKey {
   proxy: KeyProxy;
 }
 
+/** round_robin: each request starts with the next key; in_order: stay on the key that last worked until it is refused. */
+export type KeyOrder = "round_robin" | "in_order";
+
 export interface ApiKeySettings {
   enabled: boolean;
+  order: KeyOrder;
   /** Keys per provider host (lowercase host of the model server address). */
   providers: Record<string, ProviderApiKey[]>;
 }

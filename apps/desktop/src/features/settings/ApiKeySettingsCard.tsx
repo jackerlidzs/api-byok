@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, type ApiKeySettings, type ApiKeyTestResult, type KeyProxy, type KeyProxyMode, type Model, type ProviderApiKey } from "../../shared/api";
+import { api, type ApiKeySettings, type ApiKeyTestResult, type KeyOrder, type KeyProxy, type KeyProxyMode, type Model, type ProviderApiKey } from "../../shared/api";
 import { useAppStore } from "../../shared/store/appStore";
 import { Button } from "../../shared/ui/Button";
 import { Checkbox } from "../../shared/ui/Checkbox";
@@ -13,7 +13,7 @@ import { TitledCard } from "../../shared/ui/TitledCard";
 import styles from "./ApiKeySettingsCard.module.scss";
 
 const EMPTY_PROXY: KeyProxy = { mode: "inherit", address: "", auth_enabled: false, username: "", password: "" };
-const EMPTY_SETTINGS: ApiKeySettings = { enabled: false, providers: {} };
+const EMPTY_SETTINGS: ApiKeySettings = { enabled: false, order: "round_robin", providers: {} };
 
 /** The provider a model belongs to: the lowercase host of its server address. */
 function providerHost(baseUrl: string): string | null {
@@ -190,6 +190,10 @@ export function ApiKeySettingsCard() {
     { value: "custom", label: t("Custom proxy") },
     { value: "direct", label: t("Direct (no proxy)") },
   ];
+  const orderOptions: { value: KeyOrder; label: string }[] = [
+    { value: "round_robin", label: t("Round robin: each request starts with the next key") },
+    { value: "in_order", label: t("In order: stay on one key until it is refused, then move to the next") },
+  ];
 
   return <TitledCard title={t("Multiple API keys")} action={<div className={styles.actionGroup}>
     {changed && <Button size="small" disabled={saving} onClick={() => saved && setDraft(saved)}>{t("Cancel")}</Button>}
@@ -201,11 +205,16 @@ export function ApiKeySettingsCard() {
       <div className={styles.row}>
         <div className={styles.description}>
           <strong>{t("Enable multiple API keys")}</strong>
-          <small>{t("Save several keys for the same provider, each with its own proxy. Every request starts with the next key in turn; when a key is rejected (401, 402, 403, 429, 5xx) or its proxy cannot connect, the next key is used automatically.")}</small>
+          <small>{t("Save several keys for the same provider, each with its own proxy. While a provider has keys here, its models use only these keys, not the API key in the model. When a key is rejected (401, 402, 403, 429, 5xx) or its proxy cannot connect, the same request moves on to the next key.")}</small>
         </div>
         <Switch label={t("Enable multiple API keys")} checked={draft.enabled} disabled={disabled}
           onChange={(enabled) => setDraft((current) => ({ ...current, enabled }))} />
       </div>
+
+      <FormField label={t("Key order")} hint={t("Round robin spreads requests over every key. In order keeps using the key that last worked and only moves on when the provider refuses it, so keys are used up one after another. Either way, a key refused with 401, 402 or 403 (invalid key, out of credit) is tried last for the next 10 minutes; saving these settings clears that.")}>
+        <Select ariaLabel={t("Key order")} value={draft.order} disabled={disabled} options={orderOptions}
+          onChange={(order) => setDraft((current) => ({ ...current, order: order as KeyOrder }))} />
+      </FormField>
 
       {hosts.length === 0 ? <small className={styles.note}>{t("Add a model first; providers are grouped by the model server address.")}</small> : <>
         <FormField label={t("Provider")} hint={t("Grouped by the host of the model server address. Providers without keys keep using each model's own API key.")}>

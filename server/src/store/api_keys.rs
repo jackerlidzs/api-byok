@@ -14,9 +14,23 @@ pub struct ApiKeySettings {
     /// Off by default; when off every model uses only its own API key and the global proxy.
     #[serde(default)]
     pub enabled: bool,
+    /// Which key each request starts with.
+    #[serde(default)]
+    pub order: KeyOrder,
     /// Keys per provider host (lowercase `base_url` host), in order Key 1, Key 2, ...
     #[serde(default)]
     pub providers: BTreeMap<String, Vec<ProviderApiKey>>,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum KeyOrder {
+    /// Each request starts one key later than the previous one, spreading requests over all keys.
+    #[default]
+    RoundRobin,
+    /// Requests stay on the key that last worked until it is refused, then move to the next key
+    /// in the list.
+    InOrder,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
@@ -135,6 +149,7 @@ pub(crate) fn normalize_api_key_settings(settings: ApiKeySettings) -> Result<Api
     }
     Ok(ApiKeySettings {
         enabled: settings.enabled,
+        order: settings.order,
         providers,
     })
 }
@@ -222,6 +237,16 @@ mod tests {
         );
     }
 
+    #[test]
+    fn settings_saved_before_key_order_existed_use_round_robin() {
+        let settings: ApiKeySettings =
+            serde_json::from_str(r#"{"enabled":true,"providers":{}}"#).unwrap();
+        assert_eq!(settings.order, KeyOrder::RoundRobin);
+        let in_order: ApiKeySettings =
+            serde_json::from_str(r#"{"enabled":true,"order":"in_order"}"#).unwrap();
+        assert_eq!(in_order.order, KeyOrder::InOrder);
+    }
+
     #[tokio::test]
     async fn round_trips_normalized_keys_per_provider() {
         let (_directory, store) = store().await;
@@ -230,6 +255,7 @@ mod tests {
         let saved = store
             .set_api_key_settings(ApiKeySettings {
                 enabled: true,
+                order: KeyOrder::InOrder,
                 providers: BTreeMap::from([
                     (
                         " AgentRouter.org ".into(),
@@ -245,6 +271,7 @@ mod tests {
             .await
             .unwrap();
         let keys = &saved.providers["agentrouter.org"];
+        assert_eq!(saved.order, KeyOrder::InOrder);
         assert_eq!(saved.providers.len(), 1);
         assert_eq!(keys[0].key, "k1");
         assert_eq!(keys[1].proxy.address, "socks5://127.0.0.1:1080");
@@ -280,6 +307,7 @@ mod tests {
                 .set_api_key_settings(ApiKeySettings {
                     enabled: true,
                     providers: BTreeMap::from([("example.com".into(), keys)]),
+                    ..ApiKeySettings::default()
                 })
                 .await;
             assert!(matches!(result, Err(Error::Config(_))));
@@ -314,6 +342,7 @@ mod tests {
                 "api.example.com".into(),
                 vec![key("on", KeyProxy::default()), disabled],
             )]),
+            ..ApiKeySettings::default()
         };
         assert!(settings
             .enabled_keys("https://api.example.com/v1")
