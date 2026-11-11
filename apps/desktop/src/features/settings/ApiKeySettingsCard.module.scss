@@ -44,17 +44,95 @@
 
 .key {
   display: grid;
-  gap: 12px;
-  padding: 12px;
   border: 1px solid var(--vscode-widget-border, var(--vscode-input-border, transparent));
   border-radius: 6px;
 }
 
-.keyHeader {
+// Collapsed row: "Key 1", the masked key, the arrow, then the remove button.
+.keyRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 6px 4px 0;
+}
+
+.keyToggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
   gap: 12px;
+  min-width: 0;
+  padding: 6px 6px 6px 12px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--vscode-toolbar-hoverBackground);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+  }
+
+  > strong {
+    flex-shrink: 0;
+  }
+}
+
+.keyMask {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: type.$font-size-xs;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keyOffTag {
+  flex-shrink: 0;
+  padding: 0 6px;
+  color: var(--vscode-descriptionForeground);
+  border: 1px solid var(--vscode-widget-border, var(--vscode-input-border, currentColor));
+  border-radius: 8px;
+  font-size: type.$font-size-xs;
+}
+
+.keyOff .keyToggle > strong {
+  opacity: .6;
+}
+
+.chevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--vscode-descriptionForeground);
+  transition: transform .15s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.keyBody {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--vscode-widget-border, var(--vscode-input-border, transparent));
+}
+
+.keyActions {
+  justify-content: flex-start;
+}
+
+.keyTest {
+  padding: 0 12px 10px;
 }
 
 .grid {

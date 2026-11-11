@@ -5,7 +5,7 @@ import { Button } from "../../shared/ui/Button";
 import { Checkbox } from "../../shared/ui/Checkbox";
 import { FormField, SecretTextInput, TextInput } from "../../shared/ui/FormControls";
 import { Icon } from "../../shared/ui/Icon";
-import { addIcon, trashIcon } from "../../shared/ui/icons";
+import { addIcon, chevronDownIcon, windowCloseIcon } from "../../shared/ui/icons";
 import { useMessage } from "../../shared/ui/message";
 import { Select } from "../../shared/ui/Select";
 import { Switch } from "../../shared/ui/Switch";
@@ -70,6 +70,13 @@ function parseBulkLine(line: string): ProviderApiKey | string {
   return { key, enabled: true, proxy: { ...EMPTY_PROXY, mode: "custom", address: proxy } };
 }
 
+/** A key as shown in its collapsed row: the first and last three characters, so keys can be told
+ * apart without showing them. Short keys are not shown at all. */
+function maskedKey(key: string): string {
+  const trimmed = key.trim();
+  return trimmed.length > 8 ? `${trimmed.slice(0, 3)}…${trimmed.slice(-3)}` : "•••";
+}
+
 type KeyTest = { running: true } | { running: false; result: ApiKeyTestResult } | { running: false; error: string };
 
 /** Identifies a test by provider, key and proxy, so editing the key or proxy hides its old result. */
@@ -112,6 +119,8 @@ export function ApiKeySettingsCard() {
   const [bulkProblems, setBulkProblems] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [tests, setTests] = useState<Record<string, KeyTest>>({});
+  /** The positions of the keys whose settings are open, per provider. Keys start collapsed. */
+  const [expanded, setExpanded] = useState<Record<string, number[]>>({});
 
   useEffect(() => {
     void api.apiKeySettings().then((settings) => {
@@ -146,6 +155,20 @@ export function ApiKeySettingsCard() {
     setKeys(keys.map((entry, position) => (position === index ? { ...entry, ...patch } : entry)));
   const updateProxy = (index: number, patch: Partial<KeyProxy>) =>
     updateKey(index, { proxy: { ...keys[index].proxy, ...patch } });
+
+  const open = new Set(expanded[host] ?? []);
+  const setOpen = (indexes: number[]) => setExpanded((current) => ({ ...current, [host]: indexes }));
+  const toggleKey = (index: number) =>
+    setOpen(open.has(index) ? [...open].filter((position) => position !== index) : [...open, index]);
+  const addKey = () => {
+    setKeys([...keys, { key: "", enabled: true, proxy: { ...EMPTY_PROXY } }]);
+    setOpen([...open, keys.length]);
+  };
+  // Keys after the removed one move up a place, and stay open or closed as they were.
+  const removeKey = (index: number) => {
+    setKeys(keys.filter((_, position) => position !== index));
+    setOpen([...open].filter((position) => position !== index).map((position) => (position > index ? position - 1 : position)));
+  };
 
   const addBulk = () => {
     const { added, rejected } = parseBulkKeys(bulkText, new Set(keys.map((entry) => entry.key.trim())));
@@ -196,7 +219,11 @@ export function ApiKeySettingsCard() {
   ];
 
   return <TitledCard title={t("Multiple API keys")} action={<div className={styles.actionGroup}>
-    {changed && <Button size="small" disabled={saving} onClick={() => saved && setDraft(saved)}>{t("Cancel")}</Button>}
+    {changed && <Button size="small" disabled={saving} onClick={() => {
+      if (!saved) return;
+      setDraft(saved);
+      setExpanded({});
+    }}>{t("Cancel")}</Button>}
     <Button size="small" variant="primary" disabled={!changed || saving} onClick={() => void save()}>
       {saving ? t("Saving…") : t("Save")}
     </Button>
@@ -230,20 +257,27 @@ export function ApiKeySettingsCard() {
 
         {keys.map((entry, index) => {
           const test = tests[testId(host, entry)];
-          return <div className={styles.key} key={index}>
-            <div className={styles.keyHeader}>
-              <strong>{t("Key {index}", { index: index + 1 })}</strong>
-              <div className={styles.keyActions}>
-                <Button size="small" disabled={!saved || !entry.key.trim() || test?.running}
-                  onClick={() => void testKey(entry)}>{t("Test")}</Button>
-                <Switch label={t("Enable this key")} checked={entry.enabled} disabled={disabled}
-                  onChange={(enabled) => updateKey(index, { enabled })} />
-                <button type="button" className={styles.iconButton} title={t("Delete key")} aria-label={t("Delete key")} disabled={disabled}
-                  onClick={() => setKeys(keys.filter((_, position) => position !== index))}>
-                  <Icon icon={trashIcon} size="1.1em" />
-                </button>
-              </div>
+          const isOpen = open.has(index);
+          const label = t("Key {index}", { index: index + 1 });
+          const bodyId = `api-key-${index}`;
+          return <div className={[styles.key, entry.enabled ? "" : styles.keyOff].filter(Boolean).join(" ")} key={index}>
+            <div className={styles.keyRow}>
+              <button type="button" className={styles.keyToggle} aria-expanded={isOpen} aria-controls={bodyId}
+                title={isOpen ? t("Hide the settings of {key}", { key: label }) : t("Edit {key}", { key: label })}
+                onClick={() => toggleKey(index)}>
+                <strong>{label}</strong>
+                {entry.key.trim()
+                  ? <code className={styles.keyMask}>{maskedKey(entry.key)}</code>
+                  : <small className={styles.note}>{t("no key yet")}</small>}
+                {!entry.enabled && <small className={styles.keyOffTag}>{t("Off")}</small>}
+                <Icon icon={chevronDownIcon} size="1.2em" className={[styles.chevron, isOpen ? styles.chevronOpen : ""].filter(Boolean).join(" ")} />
+              </button>
+              <button type="button" className={styles.iconButton} title={t("Remove {key}", { key: label })} aria-label={t("Remove {key}", { key: label })}
+                disabled={disabled} onClick={() => removeKey(index)}>
+                <Icon icon={windowCloseIcon} size="1.1em" />
+              </button>
             </div>
+            {isOpen && <div className={styles.keyBody} id={bodyId}>
             <div className={styles.grid}>
               <FormField label={t("API key")}>
                 <SecretTextInput value={entry.key} autoComplete="off" disabled={disabled}
@@ -272,13 +306,20 @@ export function ApiKeySettingsCard() {
                 </FormField>
               </div>}
             </div>}
-            {test && <KeyTestLine test={test} />}
+            <div className={styles.keyActions}>
+              <Switch label={t("Enable this key")} checked={entry.enabled} disabled={disabled}
+                onChange={(enabled) => updateKey(index, { enabled })} />
+              <small className={styles.note}>{t("Use this key")}</small>
+              <Button size="small" disabled={!saved || !entry.key.trim() || test?.running}
+                onClick={() => void testKey(entry)}>{t("Test")}</Button>
+            </div>
+            </div>}
+            {test && <div className={styles.keyTest}><KeyTestLine test={test} /></div>}
           </div>;
         })}
 
         <div className={styles.addRow}>
-          <Button size="small" disabled={disabled || !host}
-            onClick={() => setKeys([...keys, { key: "", enabled: true, proxy: { ...EMPTY_PROXY } }])}>
+          <Button size="small" disabled={disabled || !host} onClick={addKey}>
             <Icon icon={addIcon} size="1em" /> {t("Add key")}
           </Button>
           {keys.length > 1 && <Button size="small" disabled={!saved || testableKeys.length === 0}
