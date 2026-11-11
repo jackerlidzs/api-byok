@@ -70,11 +70,15 @@ function parseBulkLine(line: string): ProviderApiKey | string {
   return { key, enabled: true, proxy: { ...EMPTY_PROXY, mode: "custom", address: proxy } };
 }
 
-/** A key as shown in its collapsed row: the first and last three characters, so keys can be told
- * apart without showing them. Short keys are not shown at all. */
+/** Asterisks that stand for the hidden middle of a key. */
+const KEY_MASK = "******";
+
+/** A key as shown in its collapsed row: the first and last three characters around six
+ * asterisks, so keys can be told apart without showing them. Keys too short to keep most of
+ * them hidden show only the asterisks. */
 function maskedKey(key: string): string {
   const trimmed = key.trim();
-  return trimmed.length > 8 ? `${trimmed.slice(0, 3)}…${trimmed.slice(-3)}` : "•••";
+  return trimmed.length > 12 ? `${trimmed.slice(0, 3)}${KEY_MASK}${trimmed.slice(-3)}` : KEY_MASK;
 }
 
 type KeyTest = { running: true } | { running: false; result: ApiKeyTestResult } | { running: false; error: string };
@@ -260,22 +264,33 @@ export function ApiKeySettingsCard() {
           const isOpen = open.has(index);
           const label = t("Key {index}", { index: index + 1 });
           const bodyId = `api-key-${index}`;
+          // Buttons in the row act on their own; a click anywhere else on the row opens or closes it.
+          const own = (action: () => void) => (event: React.MouseEvent) => {
+            event.stopPropagation();
+            action();
+          };
           return <div className={[styles.key, entry.enabled ? "" : styles.keyOff].filter(Boolean).join(" ")} key={index}>
-            <div className={styles.keyRow}>
-              <button type="button" className={styles.keyToggle} aria-expanded={isOpen} aria-controls={bodyId}
-                title={isOpen ? t("Hide the settings of {key}", { key: label }) : t("Edit {key}", { key: label })}
-                onClick={() => toggleKey(index)}>
-                <strong>{label}</strong>
-                {entry.key.trim()
-                  ? <code className={styles.keyMask}>{maskedKey(entry.key)}</code>
-                  : <small className={styles.note}>{t("no key yet")}</small>}
-                {!entry.enabled && <small className={styles.keyOffTag}>{t("Off")}</small>}
-                <Icon icon={chevronDownIcon} size="1.2em" className={[styles.chevron, isOpen ? styles.chevronOpen : ""].filter(Boolean).join(" ")} />
-              </button>
-              <button type="button" className={styles.iconButton} title={t("Remove {key}", { key: label })} aria-label={t("Remove {key}", { key: label })}
-                disabled={disabled} onClick={() => removeKey(index)}>
-                <Icon icon={windowCloseIcon} size="1.1em" />
-              </button>
+            <div className={styles.keyRow} onClick={() => toggleKey(index)}
+              title={isOpen ? t("Hide the settings of {key}", { key: label }) : t("Edit {key}", { key: label })}>
+              <strong>{label}</strong>
+              {entry.key.trim()
+                ? <code className={styles.keyMask}>{maskedKey(entry.key)}</code>
+                : <small className={styles.note}>{t("no key yet")}</small>}
+              {!entry.enabled && <small className={styles.tag}>{t("Off")}</small>}
+              <div className={styles.keyRowEnd}>
+                {entry.proxy.mode === "custom" && <small className={styles.tag} title={t("This key connects through its own proxy")}>{t("Proxy")}</small>}
+                <Button size="small" disabled={!saved || !entry.key.trim() || test?.running}
+                  onClick={own(() => void testKey(entry))}>{test?.running ? t("Testing…") : t("Test")}</Button>
+                <button type="button" className={styles.iconButton} aria-expanded={isOpen} aria-controls={bodyId}
+                  aria-label={isOpen ? t("Hide the settings of {key}", { key: label }) : t("Edit {key}", { key: label })}
+                  onClick={own(() => toggleKey(index))}>
+                  <Icon icon={chevronDownIcon} size="1.2em" className={[styles.chevron, isOpen ? styles.chevronOpen : ""].filter(Boolean).join(" ")} />
+                </button>
+                <button type="button" className={[styles.iconButton, styles.removeButton].join(" ")} title={t("Remove {key}", { key: label })} aria-label={t("Remove {key}", { key: label })}
+                  disabled={disabled} onClick={own(() => removeKey(index))}>
+                  <Icon icon={windowCloseIcon} size="1.1em" />
+                </button>
+              </div>
             </div>
             {isOpen && <div className={styles.keyBody} id={bodyId}>
             <div className={styles.grid}>
@@ -310,8 +325,6 @@ export function ApiKeySettingsCard() {
               <Switch label={t("Enable this key")} checked={entry.enabled} disabled={disabled}
                 onChange={(enabled) => updateKey(index, { enabled })} />
               <small className={styles.note}>{t("Use this key")}</small>
-              <Button size="small" disabled={!saved || !entry.key.trim() || test?.running}
-                onClick={() => void testKey(entry)}>{t("Test")}</Button>
             </div>
             </div>}
             {test && <div className={styles.keyTest}><KeyTestLine test={test} /></div>}

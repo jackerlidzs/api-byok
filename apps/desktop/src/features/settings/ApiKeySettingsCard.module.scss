@@ -48,41 +48,36 @@
   border-radius: 6px;
 }
 
-// Collapsed row: "Key 1", the masked key, the arrow, then the remove button.
+// Collapsed row: "Key 1", the masked key and an Off tag on the left; the Proxy tag, Test, the
+// arrow and the remove button on the right. Clicking the row itself opens or closes it.
 .keyRow {
   display: flex;
   align-items: center;
-  gap: 4px;
-  min-width: 0;
-  padding: 4px 6px 4px 0;
-}
-
-.keyToggle {
-  display: flex;
-  flex: 1;
-  align-items: center;
   gap: 12px;
   min-width: 0;
-  padding: 6px 6px 6px 12px;
-  color: inherit;
-  background: transparent;
-  border: 0;
+  padding: 4px 6px 4px 12px;
   border-radius: 5px;
-  font: inherit;
-  text-align: left;
   cursor: pointer;
 
   &:hover {
     background: var(--vscode-toolbar-hoverBackground);
   }
 
-  &:focus-visible {
-    outline: 1px solid var(--vscode-focusBorder);
-    outline-offset: -1px;
-  }
-
   > strong {
     flex-shrink: 0;
+  }
+}
+
+.keyRowEnd {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  cursor: default;
+
+  > .tag {
+    margin-right: 6px;
   }
 }
 
@@ -96,7 +91,7 @@
   white-space: nowrap;
 }
 
-.keyOffTag {
+.tag {
   flex-shrink: 0;
   padding: 0 6px;
   color: var(--vscode-descriptionForeground);
@@ -105,14 +100,11 @@
   font-size: type.$font-size-xs;
 }
 
-.keyOff .keyToggle > strong {
+.keyOff .keyRow > strong {
   opacity: .6;
 }
 
 .chevron {
-  flex-shrink: 0;
-  margin-left: auto;
-  color: var(--vscode-descriptionForeground);
   transition: transform .15s ease;
 }
 
@@ -159,14 +151,22 @@
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    color: var(--vscode-errorForeground);
+    color: var(--vscode-foreground);
     background: var(--vscode-toolbar-hoverBackground);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
   }
 
   &:disabled {
     opacity: .5;
     cursor: default;
   }
+}
+
+.removeButton:hover:not(:disabled) {
+  color: var(--vscode-errorForeground);
 }
 
 .addRow {
